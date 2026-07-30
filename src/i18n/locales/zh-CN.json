@@ -1,0 +1,21 @@
+{
+  "language": { "label": "语言", "english": "English", "chinese": "简体中文", "shortEnglish": "EN", "shortChinese": "中文" },
+  "search": { "label": "搜索行政区", "placeholder": "搜索伦敦行政区", "clear": "清除行政区搜索", "empty": "没有匹配的行政区" },
+  "map": { "london": "伦敦", "hint": "悬停预览 · 点击分析", "reset": "重置地图视图", "zoomIn": "放大地图", "zoomOut": "缩小地图", "loading": "正在准备伦敦地图", "missing": "本地行政区 GeoJSON 暂不可用", "fallback": "地图框架已就绪；添加 GeoJSON 后即可显示" },
+  "ai": {
+    "platform": "城市决策智能平台", "idleTitle": "你好，我是 Urban。", "assistant": "你的城市决策智能 AI 助手。", "capabilities": "我可以帮助你评估行政区潜力、发现区域洞察、比较不同地区，并生成面向决策的分析报告。", "explore": "让我们一起探索伦敦。", "begin": "点击一个行政区开始分析。",
+    "looking": "正在查看 {{borough}}……", "clickAnalyze": "正在查看 {{borough}}……点击开始分析。", "selectedTitle": "已选择 {{borough}}", "analyzingTitle": "正在分析 {{borough}}……", "complete": "分析完成", "selectedBody": "已选择 {{borough}}，正在准备分析流程。", "analyzingBody": "已选择 {{borough}}，Urban 正在解读分析引擎结果。",
+    "overallScore": "综合得分", "regionalRank": "区域排名", "followUpHint": "继续提问或与另一个行政区比较。", "compareQuestion": "与 {{borough}} 比较。", "askPlaceholder": "询问此行政区", "askLabel": "向 Urban 追问", "send": "发送问题", "comparePlaceholder": "选择比较对象……", "compareLabel": "要比较的行政区", "compare": "比较", "insightsControl": "AI 深度解读", "providerLabel": "AI 模型", "providers": { "deepseek": "DeepSeek", "qwen": "千问" }, "settingNextAnalysis": "设置将在下次分析时生效", "basicCompleteHint": "基础分析已完成，可生成报告或选择其他行政区。", "progressLabel": "分析进度",
+    "progress": ["正在加载区域指标……", "正在读取分析引擎结果……", "正在构建结构化上下文……", "正在解读结果……", "正在生成建议……"],
+    "progressComplete": ["已加载区域指标", "已读取分析引擎结果", "已构建结构化上下文", "已解读结果", "已生成建议"]
+  },
+  "analysis": {
+    "badge": "城市潜力分析", "title": "{{borough}} 分析", "intro": "清晰了解该行政区的表现、影响因素与实际发展机会。", "generateReport": "生成报告", "generating": "正在生成……", "downloadPDF": "下载 PDF 报告", "exportMarkdown": "导出 Markdown", "generatingPDF": "正在生成 PDF……", "generatingMarkdown": "正在准备 Markdown……", "overallScore": "综合得分", "rank": "排名 #{{rank}}", "rankedAcross": "在 33 个行政区中排名", "statisticalSummary": "统计摘要", "performance": "表现",
+    "dimensionsTitle": "城市潜力的三个维度", "dimensionsDescription": "基于 PCA 加权 TOPSIS 的百分制评估结果。", "economic": "经济", "social": "社会", "ecological": "生态", "economicDescription": "收入、商业密度与住房负担能力。", "socialDescription": "公共安全、服务、文化、医疗与公交可达性。", "ecologicalDescription": "植被、湿度、景观质量与回收利用。",
+    "profile": "表现概况", "profileDescription": "核心维度之间的均衡程度", "contribution": "贡献度分析", "contributionDescription": "各维度在综合评估中的占比", "indicators": "指标", "indicatorTitle": "得分背后的信号", "indicatorDescription": "简明呈现该行政区最具参考价值的规划指标。", "interpretation": "解读", "attentionTitle": "值得关注的方面", "attentionDescription": "基于分析引擎存储结果生成的 AI 深度解读。", "basicInterpretationDescription": "基于分析引擎存储结果展示预设解读，不调用外部模型。",
+    "drivers": "主要驱动因素与指标解读", "strengths": "优势", "weaknesses": "短板", "recommendations": "建议", "unavailable": "AI 深度解读暂不可用", "unavailableDescription": "AI 深度解读暂不可用，完整的基础分析结果仍可查看。", "basicAnalysis": "基础分析", "basicAnalysisDescription": "本次分析仅使用已存储的 PCA 加权 TOPSIS 结果，不包含 AI 深度解读。", "shareTitle": "准备分享分析结果？", "shareDescription": "下载正式 PDF 报告，或导出 Markdown 继续编辑。", "summary": "PCA 加权 TOPSIS 得分为 {{score}}，在伦敦排名第 {{rank}}。表现最强的评估维度是{{dimension}}。", "fallbackSummary": "分析引擎结果暂不可用；当前工作区显示的是预览数据。", "priority": { "high": "高", "medium": "中" }
+  },
+  "indicators": { "gdhi_per_head_gbp": "人均可支配收入", "business_density_per_1000": "商业密度", "house_price_earnings_ratio_reverse": "房价收入比", "police_mean": "警务资源", "convenient_service_mean": "便民服务", "cultural_mean": "文化设施", "medical_mean": "医疗资源", "bus_mean": "公交可达性", "ndvi_mean": "归一化植被指数", "wet_mean": "湿度指数", "landscape_index": "景观指数", "household_waste_recycling_rate_pct": "生活垃圾回收率" },
+  "indicatorContext": { "gdhi": "家庭可支配总收入", "business": "每千人企业数量", "reversed": "数据源提供的反向比率", "source": "数据源平均指标", "ndvi": "平均植被指数", "wet": "数据源平均指数", "landscape": "数据源景观指标", "recycling": "生活垃圾回收率" },
+  "errors": { "boroughId": "无法获取 {{borough}} 的行政区 ID。", "ai": "AI 响应失败", "aiUnavailable": "AI 深度解读暂不可用", "providerUnavailable": "{{provider}} 深度解读暂不可用，当前展示完整基础分析结果。", "analysis": "无法加载分析数据", "comparison": "行政区比较失败", "report": "Markdown 导出失败", "pdfReport": "PDF 报告生成失败" }
+}

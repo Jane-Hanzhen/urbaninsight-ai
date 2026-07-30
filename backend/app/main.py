@@ -1,0 +1,311 @@
+from __future__ import annotations
+
+from contextlib import asynccontextmanager
+import logging
+import os
+import re
+from typing import Any, AsyncIterator
+
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import Response
+from openai import APIError
+from fastapi.middleware.cors import CORSMiddleware
+
+from dotenv import load_dotenv
+
+from .database import BACKEND_DIR, initialize_database
+
+load_dotenv(BACKEND_DIR / ".env")
+from .repository import get_analysis_result, get_borough, get_indicators, list_boroughs
+from .ai.agent import (
+    AgentConfigurationError,
+    configured_live_provider,
+    configured_model,
+    configured_provider,
+    generate_basic_insights,
+    generate_basic_text,
+    generate_insights,
+    generate_live_insights,
+    generate_live_text,
+    generate_text,
+    is_configured,
+)
+from .ai.providers import ProviderResponseError
+from .ai.context import AnalysisContextError, build_analysis_context
+from .ai.prompt_builder import analysis_prompt, chat_prompt, comparison_prompt, report_prompt
+from .ai.schemas import (
+    AnalyzeRequest,
+    AnalyzeResponse,
+    ChatRequest,
+    CompareRequest,
+    PDFReportRequest,
+    ReportRequest,
+    TextResponse,
+)
+from .ai.report_builder import normalize_report_title
+from .reports import build_pdf_report
+
+logger = logging.getLogger("uvicorn.error")
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    database_path = initialize_database()
+    logger.info("SQLite database path: %s", database_path)
+    yield
+
+
+app = FastAPI(
+    title="UrbanInsight API",
+    version="0.1.0",
+    lifespan=lifespan,
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://127.0.0.1:5173", "http://localhost:5173"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
+
+
+@app.get("/health")
+def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+@app.get("/boroughs")
+def boroughs() -> list[dict[str, Any]]:
+    return list_boroughs()
+
+
+@app.get("/boroughs/{borough_id}")
+def borough_detail(borough_id: str) -> dict[str, Any]:
+    borough = get_borough(borough_id)
+    if borough is None:
+        raise HTTPException(status_code=404, detail="Borough not found")
+    return borough
+
+
+@app.get("/indicators/{borough_id}")
+def borough_indicators(borough_id: str) -> dict[str, Any]:
+    indicators = get_indicators(borough_id)
+    if indicators is None:
+        raise HTTPException(status_code=404, detail="Indicators not found")
+    return indicators
+
+
+@app.get("/analysis/{borough_id}")
+def borough_analysis(borough_id: str) -> dict[str, Any]:
+    if get_borough(borough_id) is None:
+        raise HTTPException(status_code=404, detail="Borough not found")
+    return {
+        "borough_id": borough_id,
+        "result": get_analysis_result(borough_id),
+    }
+
+
+@app.get("/ai/status")
+def ai_status() -> dict[str, Any]:
+    try:
+        return {
+            "configured": is_configured(),
+            "provider": configured_provider(),
+            "model": configured_model(),
+            "default_provider": configured_live_provider(),
+            "available_providers": ["deepseek", "qwen"],
+        }
+    except AgentConfigurationError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+
+
+@app.post("/ai/analyze", response_model=AnalyzeResponse)
+def ai_analyze(request: AnalyzeRequest) -> AnalyzeResponse:
+    context = _context_or_404(request.borough_id)
+    prompt = analysis_prompt(context, request.previous_context, request.locale)
+    if not request.include_ai_insights:
+        return AnalyzeResponse(
+            analysis_mode="basic",
+            ai_insights_requested=False,
+            ai_insights_applied=False,
+            insights=generate_basic_insights(prompt),
+        )
+
+    selected_provider: str | None = request.ai_provider
+    selected_model: str | None = None
+    try:
+        selected_provider = configured_live_provider(request.ai_provider)
+        selected_model = configured_model(selected_provider)
+        insights, actual_provider, actual_model = _run_agent(
+            lambda: generate_live_insights(prompt, selected_provider),
+            selected_provider,
+        )
+        return AnalyzeResponse(
+            analysis_mode="ai",
+            ai_insights_requested=True,
+            ai_insights_applied=True,
+            ai_provider=actual_provider,
+            ai_model=actual_model,
+            insights=insights,
+        )
+    except HTTPException as error:
+        if error.status_code not in (502, 503):
+            raise
+        return AnalyzeResponse(
+            analysis_mode="basic",
+            ai_insights_requested=True,
+            ai_insights_applied=False,
+            ai_provider=selected_provider,
+            ai_model=selected_model,
+            ai_error="unavailable",
+            insights=generate_basic_insights(prompt),
+        )
+    except AgentConfigurationError:
+        return AnalyzeResponse(
+            analysis_mode="basic",
+            ai_insights_requested=True,
+            ai_insights_applied=False,
+            ai_provider=selected_provider,
+            ai_model=selected_model,
+            ai_error="unavailable",
+            insights=generate_basic_insights(prompt),
+        )
+
+
+@app.post("/ai/chat", response_model=TextResponse)
+def ai_chat(request: ChatRequest) -> TextResponse:
+    context = _context_or_404(request.borough_id)
+    comparison = (
+        _context_or_404(request.compare_borough_id) if request.compare_borough_id else None
+    )
+    content = _generate_request_text(
+        request.ai_provider,
+        lambda generator: generator(
+            chat_prompt(
+                context,
+                request.question,
+                request.previous_context,
+                comparison,
+                request.locale,
+            )
+        ),
+    )
+    return TextResponse(content=content)
+
+
+@app.post("/ai/compare", response_model=TextResponse)
+def ai_compare(request: CompareRequest) -> TextResponse:
+    context = _context_or_404(request.borough_id)
+    comparison = _context_or_404(request.compare_borough_id)
+    content = _generate_request_text(
+        request.ai_provider,
+        lambda generator: generator(
+            comparison_prompt(
+                context, comparison, request.previous_context, request.locale
+            )
+        ),
+    )
+    return TextResponse(content=content)
+
+
+@app.post("/ai/report", response_model=TextResponse)
+def ai_report(request: ReportRequest) -> TextResponse:
+    context = _context_or_404(request.borough_id)
+    prompt = report_prompt(context, request.previous_context, request.locale)
+    if not request.include_ai_insights:
+        return TextResponse(
+            content=normalize_report_title(
+                generate_basic_text(prompt), request.locale, False
+            )
+        )
+    content = _generate_request_text(
+        request.ai_provider,
+        lambda generator: generator(prompt),
+    )
+    return TextResponse(
+        content=normalize_report_title(content, request.locale, True)
+    )
+
+
+@app.post("/reports/pdf")
+def pdf_report(request: PDFReportRequest) -> Response:
+    context = _context_or_404(request.borough_id)
+    content = build_pdf_report(context, request)
+    borough_slug = re.sub(
+        r"[^A-Za-z0-9_-]+", "_", context["borough"]["name"]
+    ).strip("_")
+    mode_slug = "ai" if request.ai_insights_applied else "basic"
+    filename = f"UrbanInsight_{borough_slug}_{mode_slug}_report.pdf"
+    return Response(
+        content=content,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+def _context_or_404(borough_id: str) -> dict[str, Any]:
+    try:
+        return build_analysis_context(borough_id)
+    except AnalysisContextError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+
+
+def _generate_request_text(provider_name: str | None, operation: Any) -> str:
+    if provider_name is None:
+        return _run_agent(lambda: operation(generate_text))
+    return _run_agent(
+        lambda: operation(
+            lambda prompt: generate_live_text(prompt, provider_name)
+        ),
+        provider_name,
+    )
+
+
+def _run_agent(operation: Any, provider_name: str | None = None) -> Any:
+    try:
+        return operation()
+    except AgentConfigurationError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+    except APIError as error:
+        logger.error(
+            "AI provider error provider=%s type=%s status=%s request_id=%s message=%s",
+            provider_name or _provider_name_for_logging(),
+            type(error).__name__,
+            getattr(error, "status_code", None),
+            getattr(error, "request_id", None),
+            _format_provider_error(error),
+        )
+        raise HTTPException(status_code=502, detail="AI provider request failed") from error
+    except ProviderResponseError as error:
+        logger.error(
+            "AI provider response error provider=%s type=%s message=%s",
+            error.provider_name,
+            type(error).__name__,
+            _redact_openai_error(str(error)),
+        )
+        raise HTTPException(status_code=502, detail="AI provider request failed") from error
+
+
+def _redact_openai_error(message: str) -> str:
+    for variable in ("OPENAI_API_KEY", "DASHSCOPE_API_KEY", "DEEPSEEK_API_KEY"):
+        api_key = os.getenv(variable)
+        if api_key:
+            message = message.replace(api_key, "[REDACTED_API_KEY]")
+    return re.sub(r"\bsk-[A-Za-z0-9_-]{8,}\b", "[REDACTED_API_KEY]", message)
+
+
+def _format_provider_error(error: BaseException) -> str:
+    messages = [_redact_openai_error(str(error))]
+    cause = error.__cause__
+    for _ in range(3):
+        if cause is None:
+            break
+        messages.append(
+            f"caused_by={type(cause).__name__}: {_redact_openai_error(str(cause))}"
+        )
+        cause = cause.__cause__
+    return " | ".join(messages)
+
+
+def _provider_name_for_logging() -> str:
+    return os.getenv("AI_PROVIDER", "openai").strip().lower() or "openai"
