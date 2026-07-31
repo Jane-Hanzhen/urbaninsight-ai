@@ -46,6 +46,8 @@ build/
 data/*.csv
 data/*.geojson
 public/data/*.geojson
+private_data/
+**/private_data/
 
 # Editor
 .vscode/*

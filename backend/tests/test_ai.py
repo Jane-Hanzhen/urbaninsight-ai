@@ -404,18 +404,19 @@ class ProviderGenerationTests(unittest.TestCase):
         generate_live_insights.assert_not_called()
 
     def test_unavailable_ai_preserves_successful_analysis_response(self) -> None:
-        with patch(
-            "app.main.generate_live_insights",
-            side_effect=ProviderConfigurationError("missing key"),
-        ):
-            response = TestClient(app).post(
-                "/ai/analyze",
-                json={
-                    "borough_id": "E09000007",
-                    "include_ai_insights": True,
-                    "ai_provider": "deepseek",
-                },
-            )
+        with patch.dict(os.environ, {"AI_MODE": "live"}, clear=False):
+            with patch(
+                "app.main.generate_live_insights",
+                side_effect=ProviderConfigurationError("missing key"),
+            ):
+                response = TestClient(app).post(
+                    "/ai/analyze",
+                    json={
+                        "borough_id": "E09000007",
+                        "include_ai_insights": True,
+                        "ai_provider": "deepseek",
+                    },
+                )
 
         self.assertEqual(response.status_code, 200)
         payload = response.json()
@@ -427,18 +428,19 @@ class ProviderGenerationTests(unittest.TestCase):
         self.assertIn("executive_summary", payload["insights"])
 
     def test_qwen_failure_does_not_fall_back_to_another_live_provider(self) -> None:
-        with patch(
-            "app.main.generate_live_insights",
-            side_effect=ProviderConfigurationError("missing qwen key"),
-        ) as generate_live:
-            response = TestClient(app).post(
-                "/ai/analyze",
-                json={
-                    "borough_id": "E09000007",
-                    "include_ai_insights": True,
-                    "ai_provider": "qwen",
-                },
-            )
+        with patch.dict(os.environ, {"AI_MODE": "live"}, clear=False):
+            with patch(
+                "app.main.generate_live_insights",
+                side_effect=ProviderConfigurationError("missing qwen key"),
+            ) as generate_live:
+                response = TestClient(app).post(
+                    "/ai/analyze",
+                    json={
+                        "borough_id": "E09000007",
+                        "include_ai_insights": True,
+                        "ai_provider": "qwen",
+                    },
+                )
 
         self.assertEqual(generate_live.call_args.args[1], "qwen")
         payload = response.json()
@@ -447,39 +449,34 @@ class ProviderGenerationTests(unittest.TestCase):
         self.assertEqual(payload["ai_provider"], "qwen")
         self.assertEqual(payload["ai_error"], "unavailable")
 
-    def test_explicit_deepseek_request_uses_live_route_even_in_mock_mode(self) -> None:
+    def test_explicit_deepseek_request_uses_mock_route_in_mock_mode(self) -> None:
         with patch.dict(
             os.environ,
             {"AI_MODE": "mock", "DEEPSEEK_MODEL": "deepseek-request-model"},
             clear=False,
         ):
-            with patch(
-                "app.main.generate_live_insights",
-                return_value=(
-                    MOCK_INSIGHTS,
-                    "deepseek",
-                    "deepseek-request-model",
-                ),
-            ) as generate_live:
-                response = TestClient(app).post(
-                    "/ai/analyze",
-                    json={
-                        "borough_id": "E09000007",
-                        "include_ai_insights": True,
-                        "ai_provider": "deepseek",
-                    },
-                )
+            with patch("app.main.generate_live_insights") as generate_live:
+                with patch("app.ai.providers.mock_provider.time.sleep"):
+                    response = TestClient(app).post(
+                        "/ai/analyze",
+                        json={
+                            "borough_id": "E09000007",
+                            "include_ai_insights": True,
+                            "ai_provider": "deepseek",
+                        },
+                    )
 
-        generate_live.assert_called_once()
-        self.assertEqual(generate_live.call_args.args[1], "deepseek")
+        generate_live.assert_not_called()
         self.assertEqual(response.json()["analysis_mode"], "ai")
+        self.assertTrue(response.json()["ai_insights_applied"])
         self.assertEqual(response.json()["ai_provider"], "deepseek")
-        self.assertEqual(response.json()["ai_model"], "deepseek-request-model")
+        self.assertEqual(response.json()["ai_model"], "urbaninsight-mock")
+        self.assertIsNone(response.json()["ai_error"])
 
     def test_explicit_qwen_request_uses_qwen_live_route(self) -> None:
         with patch.dict(
             os.environ,
-            {"AI_MODE": "mock", "QWEN_MODEL": "qwen-request-model"},
+            {"AI_MODE": "live", "QWEN_MODEL": "qwen-request-model"},
             clear=False,
         ):
             with patch(
@@ -506,20 +503,50 @@ class ProviderGenerationTests(unittest.TestCase):
             {"AI_MODE": "mock", "AI_PROVIDER": "qwen", "QWEN_MODEL": "qwen-default"},
             clear=False,
         ):
-            with patch(
-                "app.main.generate_live_insights",
-                return_value=(MOCK_INSIGHTS, "qwen", "qwen-default"),
-            ) as generate_live:
-                response = TestClient(app).post(
-                    "/ai/analyze",
-                    json={
-                        "borough_id": "E09000007",
-                        "include_ai_insights": True,
-                    },
-                )
+            with patch("app.main.generate_live_insights") as generate_live:
+                with patch("app.ai.providers.mock_provider.time.sleep"):
+                    response = TestClient(app).post(
+                        "/ai/analyze",
+                        json={
+                            "borough_id": "E09000007",
+                            "include_ai_insights": True,
+                        },
+                    )
 
-        self.assertEqual(generate_live.call_args.args[1], "qwen")
+        generate_live.assert_not_called()
         self.assertEqual(response.json()["ai_provider"], "qwen")
+        self.assertEqual(response.json()["ai_model"], "urbaninsight-mock")
+
+    def test_explicit_provider_text_requests_use_mock_mode(self) -> None:
+        with patch.dict(os.environ, {"AI_MODE": "mock"}, clear=False):
+            with patch("app.main.generate_live_text") as generate_live_text:
+                with patch("app.ai.providers.mock_provider.time.sleep"):
+                    chat = TestClient(app).post(
+                        "/ai/chat",
+                        json={
+                            "borough_id": "E09000007",
+                            "question": "What stands out?",
+                            "previous_context": [],
+                            "ai_provider": "deepseek",
+                        },
+                    )
+                    report = TestClient(app).post(
+                        "/ai/report",
+                        json={
+                            "borough_id": "E09000007",
+                            "include_ai_insights": True,
+                            "previous_context": [],
+                            "ai_provider": "qwen",
+                        },
+                    )
+
+        generate_live_text.assert_not_called()
+        self.assertEqual(chat.json(), {"content": MOCK_CHAT_RESPONSE})
+        self.assertTrue(
+            report.json()["content"].startswith(
+                "# UrbanInsight AI In-depth Analysis Report"
+            )
+        )
 
     def test_unsupported_request_provider_is_rejected(self) -> None:
         response = TestClient(app).post(
@@ -553,19 +580,20 @@ class ProviderGenerationTests(unittest.TestCase):
         generate_live_text.assert_not_called()
 
     def test_ai_report_uses_completed_provider_route_and_ai_title(self) -> None:
-        with patch(
-            "app.main.generate_live_text",
-            return_value="# Provider title\n\nReport content",
-        ) as generate_live_text:
-            response = TestClient(app).post(
-                "/ai/report",
-                json={
-                    "borough_id": "E09000007",
-                    "include_ai_insights": True,
-                    "ai_provider": "qwen",
-                    "locale": "zh-CN",
-                },
-            )
+        with patch.dict(os.environ, {"AI_MODE": "live"}, clear=False):
+            with patch(
+                "app.main.generate_live_text",
+                return_value="# Provider title\n\nReport content",
+            ) as generate_live_text:
+                response = TestClient(app).post(
+                    "/ai/report",
+                    json={
+                        "borough_id": "E09000007",
+                        "include_ai_insights": True,
+                        "ai_provider": "qwen",
+                        "locale": "zh-CN",
+                    },
+                )
 
         self.assertEqual(generate_live_text.call_args.args[1], "qwen")
         self.assertTrue(

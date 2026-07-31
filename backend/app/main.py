@@ -5,6 +5,7 @@ import logging
 import os
 import re
 from typing import Any, AsyncIterator
+from urllib.parse import urlparse
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
@@ -20,6 +21,7 @@ from .repository import get_analysis_result, get_borough, get_indicators, list_b
 from .ai.agent import (
     AgentConfigurationError,
     configured_live_provider,
+    configured_mode,
     configured_model,
     configured_provider,
     generate_basic_insights,
@@ -47,6 +49,37 @@ from .reports import build_pdf_report
 
 logger = logging.getLogger("uvicorn.error")
 
+LOCAL_CORS_ORIGINS = (
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
+)
+
+
+def configured_cors_origins() -> list[str]:
+    origins = list(LOCAL_CORS_ORIGINS)
+    configured = os.getenv("BACKEND_CORS_ORIGINS", "")
+    for value in configured.split(","):
+        origin = value.strip().rstrip("/")
+        if not origin:
+            continue
+        if origin == "*":
+            raise ValueError("BACKEND_CORS_ORIGINS must not contain '*'")
+        parsed = urlparse(origin)
+        if (
+            parsed.scheme not in {"http", "https"}
+            or not parsed.netloc
+            or parsed.path
+            or parsed.params
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise ValueError(
+                "BACKEND_CORS_ORIGINS entries must be HTTP(S) origins without paths"
+            )
+        if origin not in origins:
+            origins.append(origin)
+    return origins
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
@@ -62,7 +95,7 @@ app = FastAPI(
 )
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://127.0.0.1:5173", "http://localhost:5173"],
+    allow_origins=configured_cors_origins(),
     allow_credentials=False,
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
@@ -135,6 +168,15 @@ def ai_analyze(request: AnalyzeRequest) -> AnalyzeResponse:
     selected_model: str | None = None
     try:
         selected_provider = configured_live_provider(request.ai_provider)
+        if configured_mode() == "mock":
+            return AnalyzeResponse(
+                analysis_mode="ai",
+                ai_insights_requested=True,
+                ai_insights_applied=True,
+                ai_provider=selected_provider,
+                ai_model=configured_model(),
+                insights=generate_insights(prompt),
+            )
         selected_model = configured_model(selected_provider)
         insights, actual_provider, actual_model = _run_agent(
             lambda: generate_live_insights(prompt, selected_provider),
@@ -251,6 +293,8 @@ def _context_or_404(borough_id: str) -> dict[str, Any]:
 
 
 def _generate_request_text(provider_name: str | None, operation: Any) -> str:
+    if configured_mode() == "mock":
+        return _run_agent(lambda: operation(generate_text))
     if provider_name is None:
         return _run_agent(lambda: operation(generate_text))
     return _run_agent(
