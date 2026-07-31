@@ -23,6 +23,7 @@ node_modules/
 dist/
 dist-ssr/
 coverage/
+*.tsbuildinfo
 
 # Python environments, caches, and builds
 .venv/
@@ -42,9 +43,9 @@ build/
 *.sqlite3
 
 # Third-party research data pending redistribution review
-data/london_indicators.csv
-data/london_boroughs.geojson
-public/data/london_boroughs.geojson
+data/*.csv
+data/*.geojson
+public/data/*.geojson
 
 # Editor
 .vscode/*

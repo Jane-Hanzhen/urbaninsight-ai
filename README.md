@@ -2,283 +2,155 @@
 
 English | [简体中文](./README.zh-CN.md)
 
-UrbanInsight AI is a map-first urban decision intelligence platform for exploring and comparing London boroughs. It combines a reproducible statistical analysis pipeline with an AI interpretation layer so that users can move from regional indicators to ranked evidence, explanations, comparisons, and decision-ready reports.
+## AI-Powered Urban Decision Intelligence Platform
 
-The project is a local, portfolio-stage application. It has not been publicly deployed, and the repository does not include third-party source datasets or API credentials.
+An AI-assisted platform that turns complex borough-level data into interpretable comparisons, insights, and decision-ready reports.
 
-## Project Timeline and Role
+> **Portfolio status:** source code and the analysis workflow are public; the application has not been publicly deployed. Third-party source data is excluded pending redistribution-rights review.
 
-- **November 2024 to January 2025:** a three-person academic research project on London's urban quality of life. I served as project lead. The research used PCA for composite evaluation and Moran's I, LISA, and Getis-Ord Gi* analysis for spatial patterns.
-- **June 2026:** I independently designed and implemented the product platform, backend data pipeline, PCA-weighted TOPSIS analysis engine, interactive frontend, and provider-agnostic AI decision agent.
+## Overview
 
-PCA-weighted TOPSIS belongs to the 2026 platform phase. It was not part of the original group research methodology.
+UrbanInsight AI is a map-first decision intelligence platform for exploring and comparing London boroughs. It brings spatial exploration, reproducible statistical evidence, AI interpretation, contextual comparison, and report generation into one continuous workflow.
 
-## What the Product Does
+Users can:
 
-1. Search for, hover over, or select a London borough on an interactive map.
-2. Retrieve borough indicators and stored analysis results from FastAPI.
-3. Present the overall score, London-wide rank, dimension scores, indicator profile, PCA contributions, and TOPSIS result.
-4. Optionally enable AI Insights for the next analysis and ask the configured provider to interpret the supplied statistical result without recalculating it.
-5. Continue with contextual questions or borough comparisons, then export a
-   decision-ready PDF or editable Markdown report.
+- explore London boroughs through an interactive map;
+- review indicators, composite scores, ranks, and contribution evidence;
+- request AI explanations of stored statistical results;
+- ask follow-up questions and compare boroughs;
+- export decision-ready PDF or editable Markdown reports.
+
+It is designed as an **AI urban analysis assistant**, not a conventional dashboard that stops at visualizing metrics.
+
+## The Problem
+
+Regional analysis is often fragmented across datasets, statistical tools, maps, interpretation, and report writing. Composite scores can show *what* happened without making *why* it happened accessible to non-specialist users. Comparisons are frequently manual, and dense dashboards can make evidence harder rather than easier to understand.
+
+> **How might we turn complex urban indicators into an understandable and decision-ready exploration experience?**
+
+## Product Insight
+
+### Map first
+
+The map provides spatial context and acts as the primary entry point for borough discovery and selection.
+
+### Statistics as evidence
+
+A deterministic PCA-weighted TOPSIS engine produces reproducible scores, ranks, dimension results, and contribution evidence.
+
+### AI as interpretation
+
+AI explains, summarizes, and compares stored evidence. It does not recalculate PCA or TOPSIS, invent ranks, or replace the statistical layer.
+
+### Reports as decision output
+
+The workflow moves beyond dashboard exploration and packages completed analysis into exportable PDF and Markdown reports.
+
+## Product Experience
+
+```text
+Explore the map
+↓
+Select a borough
+↓
+Review scores and evidence
+↓
+Enable AI interpretation
+↓
+Ask follow-up questions
+↓
+Compare boroughs
+↓
+Export a report
+```
 
 ## Core Features
 
-- MapLibre GL JS borough exploration with hover, selection, search, and camera reset
-- English and Simplified Chinese interface
-- Persisted, per-analysis AI Insights preference with basic-analysis fallback
-- SQLite-backed borough, indicator, and analysis-result storage
-- Explicit CSV import and database initialization scripts
-- PCA-based objective weighting and TOPSIS ranking
-- Structured `AnalysisInsights` generation
-- Contextual follow-up chat and borough comparison
-- Charted A4 PDF report generation with Markdown as a secondary export
-- OpenAI, Qwen, and DeepSeek provider strategies
-- Token-free mock AI mode for UI development
-- Responsive map, AI panel, and analysis workspace
+- Map-first London borough exploration
+- Borough search, hover preview, selection, and camera reset
+- PCA-weighted TOPSIS scoring and ranking
+- Dimension, indicator, and contribution interpretation
+- Qwen and DeepSeek live AI insights, with a token-free Mock mode
+- Contextual follow-up chat
+- Borough-to-borough comparison
+- Charted A4 PDF and editable Markdown report generation
+- English and Simplified Chinese product experience
+- Basic-analysis fallback when live AI is disabled or unavailable
 
-## Architecture
+## AI Design
+
+The AI layer is deliberately separated from the mathematical analysis engine.
+
+| AI is responsible for | AI is not responsible for |
+| --- | --- |
+| Explaining supplied evidence | Recalculating PCA |
+| Summarizing strengths and weaknesses | Recalculating TOPSIS |
+| Comparing borough contexts | Inventing scores or ranks |
+| Producing interpretive recommendations | Replacing source evidence or domain review |
+
+Structured responses are schema-validated, prompts separate evidence from interpretation, borough context is rebuilt server-side, and provider errors are sanitized before reaching the frontend.
+
+> **Evidence first, interpretation second.**
+
+## System Overview
 
 ```mermaid
 flowchart LR
-    CSV["Licensed indicator CSV"] --> Import["Python import script"]
-    Import --> SQLite["SQLite"]
-    SQLite --> Engine["PCA-TOPSIS analysis engine"]
-    Engine --> SQLite
-    SQLite --> API["FastAPI REST API"]
-    API --> UI["React + MapLibre frontend"]
-    API --> Context["Context and prompt builders"]
-    Context --> Provider["Mock or live AI provider"]
-    Provider --> API
+    Data["Licensed data"] --> DB["SQLite"]
+    DB --> Engine["PCA-TOPSIS engine"]
+    Engine --> API["FastAPI"]
+    API --> UI["React + MapLibre"]
+    API --> AI["AI interpretation"]
+    AI --> Report["Decision-ready report"]
 ```
 
-The frontend never reads SQLite or the indicator CSV directly. The AI layer receives structured, stored results from the backend and is not allowed to calculate PCA, TOPSIS, or rankings.
+The frontend and AI layer do not read the source CSV directly. Statistical results are calculated separately, persisted, and supplied to the AI as authoritative context. See the [Technical Guide](./docs/TECHNICAL_GUIDE.md) for architecture, setup, API, validation, and data-policy details.
 
-## Technology Stack
+## Product Screenshots
 
-| Layer | Technology |
-| --- | --- |
-| Frontend | React, TypeScript, Vite, Tailwind CSS, shadcn/ui |
-| Mapping | MapLibre GL JS |
-| Charts | Recharts |
-| Localization | i18next, react-i18next |
-| Backend | Python, FastAPI, Pydantic |
-| Database | SQLite |
-| Analysis | NumPy, pandas, scikit-learn |
-| AI | OpenAI Python SDK with OpenAI, Qwen, DeepSeek, and mock strategies |
-| Tests | Python `unittest`, FastAPI TestClient, mocked provider calls |
+Verified public screenshots have not been added yet. Planned coverage includes:
 
-## Data and Analysis
+- map exploration;
+- borough analysis;
+- AI insights;
+- comparison;
+- report export.
 
-The importer validates this exact 15-column header. It expects one row per borough,
-with 12 benefit-oriented numeric indicator fields:
+Future captures will be stored in [`docs/screenshots/`](./docs/screenshots/). No mock or fabricated product screenshots are used.
 
-```text
-Region,LAD code,Region name,GDHI per head of population (pounds),
-Business Density per 1,000 Population (firms),
-Average House Price/Earnings ratio_reverse,police_mean,
-Convenient_service_mean,cultural_mean,meandical_mean,bus_new_mean,
-ndvi_mean,wet_mean,landscape_index,Household Waste Recycling Rates (%)
-```
+## Live Demo
 
-The 2026 analysis engine standardizes the indicators, applies PCA to derive objective indicator weights, and uses those weights in TOPSIS to calculate closeness scores and ranks. The source CSV already provides reversed versions of cost-oriented indicators; the engine does not independently reverse those fields.
+**Deployment in progress.**
 
-The original 2024-2025 research used POI, land use, Landsat, official statistics, and administrative-boundary inputs. Its spatial analysis included Global Moran's I, LISA, and Getis-Ord Gi*. Those spatial statistics informed the research project but are not recalculated by the current web platform.
+The repository currently supports local execution after appropriately licensed data is prepared. It is not a clone-and-run hosted demo because third-party source data and credentials are intentionally excluded.
 
-### Data Licensing and Repository Policy
+## Role and Contribution
 
-The research report references OpenStreetMap/Overpass Turbo, Impact Observatory/Esri Living Atlas land cover, USGS Landsat, London Datastore/ONS statistics, and UK Data Service boundary data. These upstream sources use different licences and attribution requirements.
+**Independent Product Designer and Developer — 2026 productization phase**
 
-The compiled local CSV and GeoJSON files do not contain sufficient field-level provenance or licence metadata to prove that the compiled artifacts may be redistributed. They are therefore intentionally excluded from this public repository pending a separate rights review. They are not covered by any licence that may later be applied to the project software.
+- Product strategy and portfolio positioning
+- UX and interaction design
+- AI workflow, provider strategy, and safety boundaries
+- Data-analysis architecture and PCA-weighted TOPSIS implementation
+- Frontend and backend implementation
+- Comparison and report workflows
+- English and Simplified Chinese experience
 
-To run the project, prepare appropriately licensed data at:
+The analytical foundation began as a **three-person academic research project from November 2024 to January 2025**, where I served as project lead. That research used PCA for composite evaluation and Moran's I, LISA, and Getis-Ord Gi* for spatial analysis. The web platform, PCA-weighted TOPSIS engine, AI decision agent, and product implementation were independently designed and built in June 2026. TOPSIS was not part of the original group methodology.
 
-```text
-data/london_indicators.csv
-data/london_boroughs.geojson
-public/data/london_boroughs.geojson
-```
+## Technology
 
-The two GeoJSON paths currently contain the same `FeatureCollection`: `data/` is the canonical working copy and `public/data/` is the browser-served copy. Each feature must use `Polygon` or `MultiPolygon` geometry and include a `properties.name` value matching `Region name`. Missing browser GeoJSON is handled without crashing, but map polygons will not be available.
+`React` · `TypeScript` · `MapLibre GL JS` · `FastAPI` · `SQLite` · `PCA` · `TOPSIS` · `Qwen` · `DeepSeek` · `ReportLab`
 
-Relevant upstream terms should be checked before preparing data:
+## Documentation
 
-- [OpenStreetMap copyright and ODbL attribution](https://www.openstreetmap.org/copyright/en)
-- [Impact Observatory Maps for Good, CC BY 4.0](https://docs.impactobservatory.com/lulc-maps/maps-for-good.html)
-- [USGS Landsat public-domain guidance](https://www.usgs.gov/faqs/are-landsat-data-cloud-still-considered-be-within-public-domain)
-- [ONS geography licences](https://www.ons.gov.uk/methodology/geography/licences)
-- [UK Data Service 2011 Census geography boundaries](https://statistics.ukdataservice.ac.uk/dataset/2011-census-geography-boundaries-uk)
+- [Technical Guide](./docs/TECHNICAL_GUIDE.md) — architecture, setup, data preparation, environment variables, API, tests, and limitations
+- [Public Project Archive](./docs/UrbanInsight_AI_Project_Archive.md) — project context, decisions, scope, contribution, and evolution
+- [Product and engineering specifications](./specs/)
+- [Simplified Chinese README](./README.zh-CN.md)
 
-## AI Decision Agent
+## Disclaimer
 
-The provider layer implements a common strategy interface for structured insights and plain-text responses. The web AI switch selects basic preset analysis or a request-level live analysis; the adjacent selector chooses DeepSeek or Qwen. `AI_PROVIDER` supplies the live default when a request omits the provider. `AI_MODE` remains available for legacy calls, CLI development, and automated test fixtures, but it does not override an explicit web AI request.
+UrbanInsight AI is an independent portfolio-stage product and has not been publicly deployed or production-hardened. AI output is interpretive decision support and must be reviewed before use in real planning decisions. Live behavior depends on external model availability, access, quota, and user-supplied credentials.
 
-For structured analysis, the provider is instructed to return JSON, the response is parsed defensively, and Pydantic validates it as `AnalysisInsights`. Chat, comparison, and report endpoints return plain text through unchanged API schemas.
-
-PDF export is a separate deterministic ReportLab pipeline. It combines the completed
-analysis metadata and structured insights already held by the frontend with
-authoritative indicators and persisted PCA/TOPSIS results reloaded by the backend.
-It does not make another LLM call. English reports use the standard PDF font stack;
-Simplified Chinese reports embed Noto Sans CJK SC, distributed under the font's
-included SIL Open Font License.
-
-The principal hallucination controls are:
-
-- statistical results are loaded from SQLite, not invented by the model;
-- the prompt clearly separates evidence from interpretation;
-- the model is prohibited from recalculating scores or rankings;
-- structured output is schema-validated;
-- borough context is rebuilt server-side for each request;
-- provider errors are sanitized before reaching the frontend.
-
-These controls reduce risk but do not guarantee factual correctness. AI recommendations remain interpretive output and should be reviewed before use in real planning decisions.
-
-## Project Structure
-
-```text
-backend/
-  analysis/             PCA-TOPSIS analysis engine
-  app/
-    ai/                 agent, prompts, context, schemas, provider strategies
-    database.py         SQLite connection and path resolution
-    main.py             FastAPI application and routes
-    repository.py       database queries
-  scripts/              CSV import and analysis runners
-  tests/                backend and provider tests
-data/                   local source data (not distributed)
-public/data/            browser-served GeoJSON (not distributed)
-specs/                  product, UI, data, backend, AI, and configuration specs
-src/
-  app/                  application orchestration and state
-  components/           map, search, AI panel, analysis workspace, UI primitives
-  i18n/                 English and Simplified Chinese resources
-  lib/                  API client and utilities
-  styles/               design tokens and global styles
-  types/                shared frontend types
-```
-
-## Local Setup
-
-### Prerequisites
-
-- Node.js 20 or later
-- pnpm
-- Python 3.11 or later
-
-### Frontend
-
-```bash
-pnpm install
-pnpm run dev
-```
-
-The Vite development server normally runs at `http://127.0.0.1:5173`.
-
-### Backend
-
-```bash
-cd backend
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-```
-
-From the project root, initialize and import the database:
-
-```bash
-backend/.venv/bin/python -m backend.scripts.import_data \
-  --csv data/london_indicators.csv
-backend/.venv/bin/python -m backend.scripts.run_analysis
-```
-
-Start FastAPI from either location:
-
-```bash
-# Project root
-backend/.venv/bin/python -m uvicorn app.main:app --app-dir backend --reload
-
-# Or backend/
-.venv/bin/python -m uvicorn app.main:app --reload
-```
-
-Both commands resolve the default database to `backend/urban_insight.db`.
-
-## Environment Configuration
-
-Use `backend/.env.example` as the template. Never expose keys through Vite variables or commit a populated `.env`.
-
-```dotenv
-AI_MODE=mock
-AI_PROVIDER=deepseek
-
-OPENAI_API_KEY=
-OPENAI_MODEL=gpt-4o-mini
-
-DASHSCOPE_API_KEY=
-QWEN_MODEL=
-QWEN_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
-
-DEEPSEEK_API_KEY=
-DEEPSEEK_MODEL=
-DEEPSEEK_BASE_URL=https://api.deepseek.com
-
-URBANINSIGHT_DB_PATH=
-```
-
-Recommended workflow:
-
-```text
-UI development -> AI_MODE=mock -> no external LLM cost
-AI integration testing -> AI_MODE=live -> configured provider
-```
-
-## Validation
-
-```bash
-# Frontend TypeScript compilation and production build
-pnpm run build
-
-# Backend compilation
-backend/.venv/bin/python -m compileall backend
-
-# Backend tests
-PYTHONPATH=backend backend/.venv/bin/python -m unittest discover \
-  -s backend/tests -v
-```
-
-External LLM calls are mocked in automated tests.
-
-## API Summary
-
-Core data endpoints:
-
-- `GET /boroughs`
-- `GET /boroughs/{id}`
-- `GET /indicators/{borough_id}`
-- `GET /analysis/{borough_id}`
-
-AI endpoints:
-
-- `GET /ai/status`
-- `POST /ai/analyze`
-- `POST /ai/chat`
-- `POST /ai/compare`
-- `POST /ai/report`
-- `POST /reports/pdf`
-
-Interactive API documentation is available at `http://127.0.0.1:8000/docs` while the backend is running.
-
-## Current Limitations
-
-- Third-party source datasets are not distributed, so local setup requires separately prepared, appropriately licensed data.
-- The project has not been publicly deployed or production-hardened.
-- SQLite and the local import workflow are intended for a single-user demonstration.
-- Live AI behavior depends on provider availability, model access, quota, and supplied credentials.
-- AI recommendations are decision support, not a substitute for domain review.
-- The platform does not currently execute Moran's I, LISA, or hotspot analysis.
-- No project software licence has been selected yet.
-
-## Screenshots
-
-No public screenshots are included yet. A future portfolio update can add verified application captures under `docs/screenshots/`.
+Compiled CSV and GeoJSON artifacts are not distributed because their field-level provenance and redistribution rights have not yet been fully verified. Users must prepare appropriately licensed data as described in the [Technical Guide](./docs/TECHNICAL_GUIDE.md). No project software licence has been selected; the bundled font retains its own SIL Open Font License.
