@@ -131,6 +131,34 @@ Point the import process at the runtime file:
 URBANINSIGHT_DATA_PATH=/etc/secrets/london_indicators.csv
 ```
 
+#### Railway Base64 injection
+
+If a Railway Volume or private file mount is unavailable, store the small
+portfolio CSV as a private Railway service variable instead of committing it to
+GitHub:
+
+```env
+URBANINSIGHT_DATA_PATH=/data/london_indicators.csv
+URBANINSIGHT_DB_PATH=/data/urban_insight.db
+URBANINSIGHT_DATA_BASE64=<base64-encoded CSV>
+```
+
+When `URBANINSIGHT_DATA_BASE64` is present, `backend/start.sh` decodes it to
+`URBANINSIGHT_DATA_PATH` before running the existing import and analysis flow.
+If the variable is absent, startup continues to use the file already available
+at `URBANINSIGHT_DATA_PATH`.
+
+Generate a single-line value locally without modifying the source CSV:
+
+```bash
+python -c 'import base64, pathlib; print(base64.b64encode(pathlib.Path("data/london_indicators.csv").read_bytes()).decode())'
+```
+
+Add the output as the private `URBANINSIGHT_DATA_BASE64` variable in Railway.
+Do not paste the encoded value into Git, logs, documentation, or frontend
+variables. Base64 is an encoding, not encryption; its confidentiality depends
+on Railway variable access controls.
+
 At startup, `backend/start.sh` runs the private-data pipeline in order:
 
 ```text

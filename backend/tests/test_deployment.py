@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import os
+import base64
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from app.main import LOCAL_CORS_ORIGINS, configured_cors_origins
+from scripts.prepare_private_data import decode_private_data
 
 
 class CORSConfigurationTests(unittest.TestCase):
@@ -50,6 +54,35 @@ class CORSConfigurationTests(unittest.TestCase):
         ):
             with self.assertRaisesRegex(ValueError, "without paths"):
                 configured_cors_origins()
+
+
+class PrivateDataPreparationTests(unittest.TestCase):
+    def test_decodes_private_data_and_creates_parent_directory(self) -> None:
+        csv_content = b"Region,LAD code\nLondon,E09000001\n"
+        encoded_data = base64.b64encode(csv_content).decode("ascii")
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            destination = Path(temporary_directory) / "data" / "indicators.csv"
+            result = decode_private_data(encoded_data, destination)
+
+            self.assertEqual(result, destination.resolve())
+            self.assertEqual(destination.read_bytes(), csv_content)
+
+    def test_accepts_wrapped_base64(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            destination = Path(temporary_directory) / "indicators.csv"
+            decode_private_data("YQ==\n", destination)
+
+            self.assertEqual(destination.read_bytes(), b"a")
+
+    def test_rejects_invalid_base64_without_creating_destination(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            destination = Path(temporary_directory) / "indicators.csv"
+
+            with self.assertRaisesRegex(ValueError, "not valid Base64"):
+                decode_private_data("not-base64!", destination)
+
+            self.assertFalse(destination.exists())
 
 
 if __name__ == "__main__":

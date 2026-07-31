@@ -12,6 +12,11 @@ done
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
+if [ -n "${URBANINSIGHT_DATA_BASE64:-}" ]; then
+  echo "Preparing private indicators from URBANINSIGHT_DATA_BASE64..."
+  python scripts/prepare_private_data.py
+fi
+
 echo "[1/3] Importing indicators..."
 python scripts/import_data.py \
   --csv "$URBANINSIGHT_DATA_PATH" \
