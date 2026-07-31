@@ -1,5 +1,7 @@
 # UrbanInsight AI
 
+English | [简体中文](./README.zh-CN.md)
+
 UrbanInsight AI is a map-first urban decision intelligence platform for exploring and comparing London boroughs. It combines a reproducible statistical analysis pipeline with an AI interpretation layer so that users can move from regional indicators to ranked evidence, explanations, comparisons, and decision-ready reports.
 
 The project is a local, portfolio-stage application. It has not been publicly deployed, and the repository does not include third-party source datasets or API credentials.
