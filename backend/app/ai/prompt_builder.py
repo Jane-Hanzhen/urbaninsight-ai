@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from ..indicators import indicator_name, replace_internal_indicator_names
 from .schemas import ChatMessage, SupportedLocale
 
 
@@ -10,8 +11,14 @@ SYSTEM_INSTRUCTIONS = """You are Urban, a careful urban-analysis decision assist
 Interpret only the authoritative structured context supplied by UrbanInsight's Analysis Engine.
 Never calculate, recalculate, estimate, alter, or invent PCA, TOPSIS, scores, contributions, or rankings.
 Treat all supplied statistical values as immutable facts. If data is absent, say it is unavailable.
-Explain evidence in plain English, distinguish observed data from recommendations, and avoid causal claims
-that the data cannot support. Keep advice concise, practical, and appropriate for urban decision support."""
+Use only the human-readable indicator names supplied in the context. Never reveal database field names,
+snake_case indicator keys, or other internal identifiers. Focus on what the evidence means for the borough,
+not on calculation mechanics. Do not list PCA weights, TOPSIS intermediate values, or long sequences of
+indicator contribution values. You may reference the PCA-weighted TOPSIS method, stored dimension scores,
+ranking, and at most three important indicator values across the entire response when they materially
+support an insight. Prefer qualitative comparisons and implications over repeating supplied numbers.
+Explain evidence clearly, distinguish observed data from recommendations, and avoid causal claims that the
+data cannot support. Keep advice concise, practical, and appropriate for urban decision support."""
 
 
 def output_language_instruction(locale: SupportedLocale) -> str:
@@ -28,13 +35,45 @@ def context_payload(
     primary: dict[str, Any],
     comparison: dict[str, Any] | None = None,
     previous_context: list[ChatMessage] | None = None,
+    locale: SupportedLocale = "en",
 ) -> str:
-    payload: dict[str, Any] = {"selected_borough": primary}
+    payload: dict[str, Any] = {"selected_borough": _ai_facing_context(primary, locale)}
     if comparison is not None:
-        payload["comparison_borough"] = comparison
+        payload["comparison_borough"] = _ai_facing_context(comparison, locale)
     if previous_context:
-        payload["previous_conversation"] = [message.model_dump() for message in previous_context[-12:]]
-    return json.dumps(payload, indent=2, sort_keys=True)
+        payload["previous_conversation"] = [
+            {
+                "role": message.role,
+                "content": replace_internal_indicator_names(message.content, locale),
+            }
+            for message in previous_context[-12:]
+        ]
+    return json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False)
+
+
+def _ai_facing_context(context: dict[str, Any], locale: SupportedLocale) -> dict[str, Any]:
+    engine = context["analysis_engine"]
+    contributions = engine.get("indicator_contributions", {})
+    major_drivers = sorted(
+        contributions,
+        key=lambda key: float(contributions[key]),
+        reverse=True,
+    )[:4]
+    return {
+        "borough": context["borough"],
+        "scores": context["scores"],
+        "indicators": [
+            {"name": indicator_name(key, locale), "value": value}
+            for key, value in context["indicators"].items()
+        ],
+        "analysis_engine": {
+            "method": engine["method"],
+            "major_indicator_drivers": [
+                indicator_name(key, locale) for key in major_drivers
+            ],
+            "topsis": engine.get("topsis", {}),
+        },
+    }
 
 
 def analysis_prompt(
@@ -47,7 +86,7 @@ interpret indicators, and recommend realistic development actions. Do not perfor
 {output_language_instruction(locale)}
 
 AUTHORITATIVE CONTEXT
-{context_payload(primary, previous_context=previous_context)}"""
+{context_payload(primary, previous_context=previous_context, locale=locale)}"""
 
 
 def chat_prompt(
@@ -59,15 +98,16 @@ def chat_prompt(
 ) -> str:
     return f"""Answer the user's question using only the authoritative context below.
 When comparing boroughs, explain supplied score, indicator, contribution, and development differences;
-do not derive a new score or ranking. Keep the response focused and use Markdown when useful.
+do not derive a new score or ranking. Discuss only the few differences that matter most for decisions,
+without enumerating contribution values. Keep the response focused and use Markdown when useful.
 
 {output_language_instruction(locale)}
 
 AUTHORITATIVE CONTEXT
-{context_payload(primary, comparison, previous_context)}
+{context_payload(primary, comparison, previous_context, locale)}
 
 USER QUESTION
-{question}"""
+{replace_internal_indicator_names(question, locale)}"""
 
 
 def comparison_prompt(
@@ -91,9 +131,11 @@ def report_prompt(
     return f"""Write a polished Markdown report based only on the authoritative context.
 Use these headings: Executive Summary, Regional Evaluation, Key Indicators, Strengths,
 Weaknesses, and Recommendations. Quote supplied values accurately and do not calculate new ones.
+Keep the PCA-weighted TOPSIS methodology, stored dimension scores, and ranking explanation visible.
+Emphasize implications, not model mechanics; never enumerate indicator contributions or PCA weights.
 Return Markdown only, beginning with a level-one title.
 
 {output_language_instruction(locale)}
 
 AUTHORITATIVE CONTEXT
-{context_payload(primary, previous_context=previous_context)}"""
+{context_payload(primary, previous_context=previous_context, locale=locale)}"""

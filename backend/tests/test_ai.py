@@ -15,6 +15,7 @@ from app.ai.prompt_builder import (
     comparison_prompt,
     report_prompt,
 )
+from app.ai.output_formatter import sanitize_ai_text, sanitize_analysis_insights
 from app.ai.providers.base import ProviderConfigurationError, ProviderResponseError
 from app.ai.providers.deepseek_provider import DeepSeekProvider
 from app.ai.providers.factory import (
@@ -92,9 +93,22 @@ class PromptBuilderTests(unittest.TestCase):
         self.assertIn('"name": "Camden"', prompt)
         self.assertIn('"overall": 78.6', prompt)
         self.assertIn('"regional_rank": 3', prompt)
-        self.assertIn('"pca_weights"', prompt)
         self.assertIn('"topsis"', prompt)
+        self.assertIn('"name": "GDHI per head"', prompt)
+        self.assertIn('"major_indicator_drivers"', prompt)
+        self.assertNotIn("gdhi_per_head_gbp", prompt)
+        self.assertNotIn('"indicator_contributions"', prompt)
+        self.assertNotIn('"dimension_contributions"', prompt)
+        self.assertNotIn('"pca_summary"', prompt)
         self.assertIn("Do not perform new calculations", prompt)
+
+    def test_chinese_prompt_uses_centralized_human_readable_names(self) -> None:
+        prompt = analysis_prompt(sample_context("Camden", 78.6, 3), [], "zh-CN")
+
+        self.assertIn('"name": "人均可支配收入"', prompt)
+        self.assertIn('"name": "植被指数"', prompt)
+        self.assertNotIn("gdhi_per_head_gbp", prompt)
+        self.assertNotIn("ndvi_mean", prompt)
 
     def test_comparison_prompt_contains_both_boroughs(self) -> None:
         prompt = comparison_prompt(
@@ -130,6 +144,23 @@ class PromptBuilderTests(unittest.TestCase):
     def test_system_instructions_preserve_statistical_boundary(self) -> None:
         self.assertIn("Never calculate, recalculate", SYSTEM_INSTRUCTIONS)
         self.assertIn("immutable facts", SYSTEM_INSTRUCTIONS)
+        self.assertIn("Never reveal database field names", SYSTEM_INSTRUCTIONS)
+        self.assertIn("Do not list PCA weights", SYSTEM_INSTRUCTIONS)
+
+    def test_output_formatter_replaces_provider_leaks_in_text_and_insights(self) -> None:
+        text = "business_density_per_1000, wet_mean, and future_metric_key are drivers."
+        insights = MOCK_INSIGHTS.model_copy(
+            update={"executive_summary": "gdhi_per_head_gbp is important."}
+        )
+
+        self.assertEqual(
+            sanitize_ai_text(text, "zh-CN"),
+            "商业密度, 湿度指数, and future metric key are drivers.",
+        )
+        sanitized = sanitize_analysis_insights(insights, "en")
+        self.assertEqual(
+            sanitized.executive_summary, "GDHI per head is important."
+        )
 
     def test_openai_error_logging_redacts_api_keys(self) -> None:
         message = "Authentication failed for sk-example_secret_123456"

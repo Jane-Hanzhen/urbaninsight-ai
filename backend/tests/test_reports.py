@@ -139,6 +139,9 @@ class MarkdownReportEndpointTests(unittest.TestCase):
         content = response.json()["content"]
         self.assertTrue(content.startswith("# UrbanInsight Basic Analysis Report"))
         self.assertIn("**Overall score:** 72.4", content)
+        self.assertIn("**GDHI per head:** GBP 58,440", content)
+        self.assertNotIn("gdhi_per_head_gbp", content)
+        self.assertNotIn("business_density_per_1000", content)
         self.assertIn("## Recommendations", content)
 
     def test_live_ai_snapshot_exports_without_second_provider_call(self) -> None:
@@ -163,6 +166,10 @@ class MarkdownReportEndpointTests(unittest.TestCase):
         content = response.json()["content"]
         self.assertTrue(content.startswith("# UrbanInsight AI 深度分析报告"))
         self.assertIn("**AI Provider:** deepseek", content)
+        self.assertIn("**人均可支配收入:** GBP 58,440", content)
+        self.assertIn("**商业密度:** 179.79", content)
+        self.assertNotIn("gdhi_per_head_gbp", content)
+        self.assertNotIn("business_density_per_1000", content)
         self.assertIn("Markdown 导出不会重新计算统计结果或再次调用模型", content)
 
 

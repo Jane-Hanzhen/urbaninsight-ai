@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from ..indicators import format_indicator_value, indicator_name
 from ..ai.report_builder import report_title
 from ..ai.schemas import AnalysisInsights, ReportRequest
 
@@ -92,8 +93,7 @@ def _contribution_lines(values: dict[str, Any], locale: str) -> list[str]:
 
 
 def _indicator_lines(indicators: dict[str, Any], locale: str) -> list[str]:
-    labels = _indicator_labels(locale)
-    return [f"- **{_text(labels.get(key, key))}:** {_format_value(key, value)}" for key, value in indicators.items()]
+    return [f"- **{_text(indicator_name(key, locale))}:** {format_indicator_value(key, value)}" for key, value in indicators.items()]
 
 
 def _insight_lines(items: list[Any]) -> list[str]:
@@ -116,32 +116,6 @@ def _method_note(locale: str, request: ReportRequest) -> str:
 
 def _text(value: Any) -> str:
     return " ".join(str(value).split()).replace("|", "\\|")
-
-
-def _format_value(key: str, value: Any) -> str:
-    numeric = float(value)
-    if key == "gdhi_per_head_gbp":
-        return f"GBP {numeric:,.0f}"
-    if key == "household_waste_recycling_rate_pct":
-        return f"{numeric:.1f}%"
-    return f"{numeric:,.3f}".rstrip("0").rstrip(".")
-
-
-def _indicator_labels(locale: str) -> dict[str, str]:
-    english = {
-        "gdhi_per_head_gbp": "GDHI per head (GBP)", "business_density_per_1000": "Business density per 1,000 population",
-        "house_price_earnings_ratio_reverse": "House price / earnings ratio (reversed)", "police_mean": "Police provision",
-        "convenient_service_mean": "Convenient services", "cultural_mean": "Cultural amenities", "medical_mean": "Medical resources",
-        "bus_mean": "Bus accessibility", "ndvi_mean": "NDVI", "wet_mean": "Wetness index", "landscape_index": "Landscape index",
-        "household_waste_recycling_rate_pct": "Household waste recycling rate",
-    }
-    chinese = {
-        "gdhi_per_head_gbp": "人均可支配收入（英镑）", "business_density_per_1000": "每千人商业密度",
-        "house_price_earnings_ratio_reverse": "房价收入比（反向指标）", "police_mean": "警务资源", "convenient_service_mean": "便民服务",
-        "cultural_mean": "文化设施", "medical_mean": "医疗资源", "bus_mean": "公交可达性", "ndvi_mean": "归一化植被指数",
-        "wet_mean": "湿度指数", "landscape_index": "景观指数", "household_waste_recycling_rate_pct": "生活垃圾回收率",
-    }
-    return chinese if locale == "zh-CN" else english
 
 
 def _label(locale: str, english: str, chinese: str) -> str:

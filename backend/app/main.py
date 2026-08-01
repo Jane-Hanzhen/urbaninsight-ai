@@ -34,6 +34,7 @@ from .ai.agent import (
 )
 from .ai.providers import ProviderResponseError
 from .ai.context import AnalysisContextError, build_analysis_context
+from .ai.output_formatter import sanitize_ai_text, sanitize_analysis_insights
 from .ai.prompt_builder import analysis_prompt, chat_prompt, comparison_prompt, report_prompt
 from .ai.schemas import (
     AnalyzeRequest,
@@ -161,7 +162,9 @@ def ai_analyze(request: AnalyzeRequest) -> AnalyzeResponse:
             analysis_mode="basic",
             ai_insights_requested=False,
             ai_insights_applied=False,
-            insights=generate_basic_insights(prompt),
+            insights=sanitize_analysis_insights(
+                generate_basic_insights(prompt), request.locale
+            ),
         )
 
     selected_provider: str | None = request.ai_provider
@@ -175,7 +178,9 @@ def ai_analyze(request: AnalyzeRequest) -> AnalyzeResponse:
                 ai_insights_applied=True,
                 ai_provider=selected_provider,
                 ai_model=configured_model(),
-                insights=generate_insights(prompt),
+                insights=sanitize_analysis_insights(
+                    generate_insights(prompt), request.locale
+                ),
             )
         selected_model = configured_model(selected_provider)
         insights, actual_provider, actual_model = _run_agent(
@@ -188,7 +193,7 @@ def ai_analyze(request: AnalyzeRequest) -> AnalyzeResponse:
             ai_insights_applied=True,
             ai_provider=actual_provider,
             ai_model=actual_model,
-            insights=insights,
+            insights=sanitize_analysis_insights(insights, request.locale),
         )
     except HTTPException as error:
         if error.status_code not in (502, 503):
@@ -200,7 +205,9 @@ def ai_analyze(request: AnalyzeRequest) -> AnalyzeResponse:
             ai_provider=selected_provider,
             ai_model=selected_model,
             ai_error="unavailable",
-            insights=generate_basic_insights(prompt),
+            insights=sanitize_analysis_insights(
+                generate_basic_insights(prompt), request.locale
+            ),
         )
     except AgentConfigurationError:
         return AnalyzeResponse(
@@ -210,7 +217,9 @@ def ai_analyze(request: AnalyzeRequest) -> AnalyzeResponse:
             ai_provider=selected_provider,
             ai_model=selected_model,
             ai_error="unavailable",
-            insights=generate_basic_insights(prompt),
+            insights=sanitize_analysis_insights(
+                generate_basic_insights(prompt), request.locale
+            ),
         )
 
 
@@ -232,7 +241,7 @@ def ai_chat(request: ChatRequest) -> TextResponse:
             )
         ),
     )
-    return TextResponse(content=content)
+    return TextResponse(content=sanitize_ai_text(content, request.locale))
 
 
 @app.post("/ai/compare", response_model=TextResponse)
@@ -247,7 +256,7 @@ def ai_compare(request: CompareRequest) -> TextResponse:
             )
         ),
     )
-    return TextResponse(content=content)
+    return TextResponse(content=sanitize_ai_text(content, request.locale))
 
 
 @app.post("/ai/report", response_model=TextResponse)
@@ -258,13 +267,20 @@ def ai_report(request: ReportRequest) -> TextResponse:
         and request.analysis_result is not None
         and request.ai_insights_applied is not None
     ):
-        return TextResponse(content=build_markdown_report(context, request))
+        sanitized_request = request.model_copy(
+            update={
+                "insights": sanitize_analysis_insights(request.insights, request.locale)
+            }
+        )
+        return TextResponse(content=build_markdown_report(context, sanitized_request))
 
     prompt = report_prompt(context, request.previous_context, request.locale)
     if not request.include_ai_insights:
         return TextResponse(
             content=normalize_report_title(
-                generate_basic_text(prompt), request.locale, False
+                sanitize_ai_text(generate_basic_text(prompt), request.locale),
+                request.locale,
+                False,
             )
         )
     content = _generate_request_text(
@@ -272,14 +288,21 @@ def ai_report(request: ReportRequest) -> TextResponse:
         lambda generator: generator(prompt),
     )
     return TextResponse(
-        content=normalize_report_title(content, request.locale, True)
+        content=normalize_report_title(
+            sanitize_ai_text(content, request.locale), request.locale, True
+        )
     )
 
 
 @app.post("/reports/pdf")
 def pdf_report(request: PDFReportRequest) -> Response:
     context = _context_or_404(request.borough_id)
-    content = build_pdf_report(context, request)
+    sanitized_request = request.model_copy(
+        update={
+            "insights": sanitize_analysis_insights(request.insights, request.locale)
+        }
+    )
+    content = build_pdf_report(context, sanitized_request)
     borough_slug = re.sub(
         r"[^A-Za-z0-9_-]+", "_", context["borough"]["name"]
     ).strip("_")
