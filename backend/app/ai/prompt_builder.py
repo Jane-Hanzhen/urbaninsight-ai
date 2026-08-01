@@ -96,10 +96,17 @@ def chat_prompt(
     comparison: dict[str, Any] | None = None,
     locale: SupportedLocale = "en",
 ) -> str:
-    return f"""Answer the user's question using only the authoritative context below.
-When comparing boroughs, explain supplied score, indicator, contribution, and development differences;
-do not derive a new score or ranking. Discuss only the few differences that matter most for decisions,
-without enumerating contribution values. Keep the response focused and use Markdown when useful.
+    return f"""Act as an urban decision assistant and answer the user's practical question using only
+the authoritative context below. Lead with one clear finding, then select no more than four points that
+matter most for a decision. Explain evidence in plain language. Do not write a report, enumerate all
+available values, or use Markdown. Do not derive a new score or ranking. Round overall and dimension
+scores to one decimal place when they are necessary; rankings must remain integers.
+
+Stay within what the supplied evidence supports. Do not predict future industries, claim absolute
+causation, or recommend a specific industry unless the context directly supports it. Prefer qualified
+language such as "shows an advantage in", "provides underlying conditions for", and "performs more
+strongly under the current evaluation framework". If the supplied context cannot answer the question,
+state that limitation explicitly.
 
 {output_language_instruction(locale)}
 
@@ -116,13 +123,28 @@ def comparison_prompt(
     previous_context: list[ChatMessage],
     locale: SupportedLocale = "en",
 ) -> str:
-    return chat_prompt(
-        primary,
-        "Compare the selected borough with the comparison borough. Explain score and indicator differences, competitive advantages, and development gaps.",
-        previous_context,
-        comparison,
-        locale,
-    )
+    return f"""Act as an urban decision assistant, not a report writer. Answer the practical question:
+What are the most meaningful differences between these two boroughs?
+
+Lead with one clear comparison conclusion framed explicitly "under the current evaluation framework".
+Never state that one borough is simply better, more valuable, or universally preferable. Select at most
+three meaningful advantages for each borough,
+give one concise and explicitly interpretive positioning statement for each borough, and finish with one
+decision-oriented takeaway. Use supplied scores and indicators only as supporting evidence. Include at
+most three numeric comparisons and do not reproduce dimension tables or enumerate all values. Do not use
+Markdown. Do not derive a new score or ranking. Positioning labels are interpretations, not official
+classifications. Round displayed overall and dimension scores to one decimal place; rankings must remain
+integers. Numeric evidence should normally use no more than one decimal place.
+
+Stay within what the supplied evidence supports. Do not predict future industries, claim absolute
+causation, or recommend a specific industry unless the context directly supports it. Prefer qualified
+language such as "shows an advantage in", "provides underlying conditions for", and "performs more
+strongly under the current evaluation framework".
+
+{output_language_instruction(locale)}
+
+AUTHORITATIVE CONTEXT
+{context_payload(primary, comparison, previous_context, locale)}"""
 
 
 def report_prompt(

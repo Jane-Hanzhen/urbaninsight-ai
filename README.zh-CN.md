@@ -4,9 +4,9 @@
 
 ## AI 驱动的城市决策智能平台
 
-一个由 AI 辅助的城市分析平台，将复杂的行政区级数据转化为可理解的区域比较、分析洞察和面向决策的报告。
+UrbanInsight AI 是一个 AI 驱动的城市决策智能平台，将地理空间分析、PCA-TOPSIS 多指标评价、伦敦行政区交互探索与 AI 城市洞察整合为一套连续的决策支持体验。
 
-> **作品集状态：** 源代码与分析流程已公开；应用尚未公开部署。第三方源数据因再分发权利仍待确认，未纳入仓库。
+> **作品集状态：** 源代码与可复现流程已公开，部署架构采用 Vercel 与 Railway；仓库目前未提供经过核验的公开 Demo 地址。处理后的指标 CSV 与服务端凭据保持私有。
 
 ## 项目概览
 
@@ -70,7 +70,10 @@ AI 对已存储的证据进行解释、总结和比较。它不会重新计算 P
 - 行政区搜索、悬停预览、选择和镜头重置
 - PCA 加权 TOPSIS 评分与排名
 - 维度、指标和贡献度解读
+- 默认关闭、对下一次分析生效的 AI 深度解读开关
 - Qwen 与 DeepSeek Live AI 洞察，以及无需 Token 的 Mock 模式
+- Provider 选择与后端 AI 运行模式状态反馈
+- 指标定义与解读 Tooltip
 - 带上下文的连续追问
 - 行政区之间的对比分析
 - 包含图表的 A4 PDF 与可编辑 Markdown 报告生成
@@ -96,8 +99,10 @@ AI 层与数学分析引擎被有意分离。
 
 ```mermaid
 flowchart LR
-    Data["Licensed data"] --> DB["SQLite"]
-    DB --> Engine["PCA-TOPSIS engine"]
+    Data["私有指标 CSV"] --> Import["Python 导入脚本"]
+    Import --> DB["SQLite"]
+    DB --> Engine["PCA-TOPSIS 分析引擎"]
+    Engine --> DB
     Engine --> API["FastAPI"]
     API --> UI["React + MapLibre"]
     API --> AI["AI interpretation"]
@@ -120,9 +125,24 @@ flowchart LR
 
 ## 在线演示
 
-**Deployment in progress.**
+**部署架构：** Vercel 前端 + Railway 后端。
 
-目前，在自行准备具有适当许可的数据后，项目可以在本地运行。由于第三方源数据和凭据被有意排除，它并不是一个克隆后即可完整运行的在线演示仓库。
+仓库目前没有记录经过核验的公开 Demo 地址。本地或托管运行都需要单独注入私有指标数据，所有模型凭据仅保存在后端。
+
+## 数据来源
+
+- **地图边界：** MapLibre 使用的伦敦行政区 GeoJSON 来自 [`radoi90/housequest-data`](https://github.com/radoi90/housequest-data)。该上游仓库以 MIT 许可发布此文件；如再分发边界文件，应保留其版权与许可声明。
+- **城市指标：** `data/london_indicators.csv` 是经过处理的私有分析数据，不包含在 GitHub 仓库中。部署时由后端安全注入，再导入 SQLite。
+
+第三方数据不属于 UrbanInsight AI 未来可能采用的软件许可范围。CSV 字段结构与运行路径见[技术指南](./docs/TECHNICAL_GUIDE.md)。
+
+## 部署方式
+
+- **前端：** 部署至 Vercel，使用 `pnpm run build` 构建，并通过 `VITE_API_URL` 连接 Railway API。
+- **后端：** 部署至 Railway；Root Directory 为 `backend`，Build Command 为 `pip install -r requirements.txt`，Start Command 为 `bash start.sh`。
+- **后端运行配置：** `URBANINSIGHT_DATA_PATH`、`URBANINSIGHT_DB_PATH`、`PORT`、`AI_MODE` 与 `AI_PROVIDER`。Live AI 还需要对应 Provider 的密钥与模型配置。
+
+私有数据注入、CORS、Mock/Live 模式与发布验证步骤见 [DEPLOYMENT.md](./DEPLOYMENT.md)。
 
 ## 角色与贡献
 
@@ -151,6 +171,6 @@ flowchart LR
 
 ## 免责声明
 
-UrbanInsight AI 是一个独立的作品集阶段产品，尚未公开部署或完成生产级加固。AI 输出属于解释性决策辅助，在用于真实规划决策前必须经过人工审查。Live 模式的实际表现取决于外部模型的可用性、访问权限、配额和用户提供的凭据。
+UrbanInsight AI 是一个独立的作品集阶段产品，尚未完成生产级加固。AI 输出属于解释性决策辅助，在用于真实规划决策前必须经过人工审查。Live 模式的实际表现取决于外部模型的可用性、访问权限、配额和后端凭据。
 
-汇编后的 CSV 和 GeoJSON 产物未随仓库分发，因为其字段级来源与再分发权利尚未得到完整验证。用户必须按照[技术指南](./docs/TECHNICAL_GUIDE.md)自行准备具有适当许可的数据。当前尚未选择项目软件许可；随仓库提供的字体继续适用其自身的 SIL Open Font License。
+私有的处理后指标 CSV 不随仓库分发。伦敦行政区 GeoJSON 属于上文已署名的第三方材料，不属于项目未来软件许可的覆盖范围。当前尚未选择项目软件许可；随仓库提供的字体继续适用其自身的 SIL Open Font License。

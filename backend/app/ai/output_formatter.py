@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..indicators import replace_internal_indicator_names
-from .schemas import AnalysisInsights, SupportedLocale
+from .schemas import AnalysisInsights, ChatAnswer, CompareAnswer, SupportedLocale
 
 
 def sanitize_ai_text(text: str, locale: SupportedLocale) -> str:
@@ -15,6 +15,14 @@ def sanitize_analysis_insights(
 ) -> AnalysisInsights:
     payload = _sanitize_value(insights.model_dump(), locale)
     return AnalysisInsights.model_validate(payload)
+
+
+def sanitize_chat_answer(answer: ChatAnswer, locale: SupportedLocale) -> ChatAnswer:
+    return ChatAnswer.model_validate(_sanitize_value(answer.model_dump(), locale))
+
+
+def sanitize_compare_answer(answer: CompareAnswer, locale: SupportedLocale) -> CompareAnswer:
+    return CompareAnswer.model_validate(_sanitize_value(answer.model_dump(), locale))
 
 
 def _sanitize_value(value: Any, locale: SupportedLocale) -> Any:

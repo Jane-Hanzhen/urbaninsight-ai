@@ -26,27 +26,39 @@ from .ai.agent import (
     configured_provider,
     generate_basic_insights,
     generate_basic_text,
+    generate_chat,
+    generate_comparison,
     generate_insights,
     generate_live_insights,
+    generate_live_chat,
+    generate_live_comparison,
     generate_live_text,
     generate_text,
     is_configured,
 )
 from .ai.providers import ProviderResponseError
 from .ai.context import AnalysisContextError, build_analysis_context
-from .ai.output_formatter import sanitize_ai_text, sanitize_analysis_insights
+from .ai.output_formatter import (
+    sanitize_ai_text,
+    sanitize_analysis_insights,
+    sanitize_chat_answer,
+    sanitize_compare_answer,
+)
 from .ai.prompt_builder import analysis_prompt, chat_prompt, comparison_prompt, report_prompt
 from .ai.schemas import (
     AnalyzeRequest,
     AnalyzeResponse,
     ChatRequest,
+    ChatResponse,
+    CompareResponse,
     CompareRequest,
+    ConversationPDFRequest,
     PDFReportRequest,
     ReportRequest,
     TextResponse,
 )
 from .ai.report_builder import normalize_report_title
-from .reports import build_markdown_report, build_pdf_report
+from .reports import build_conversation_pdf, build_markdown_report, build_pdf_report
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -227,40 +239,42 @@ def ai_analyze(request: AnalyzeRequest) -> AnalyzeResponse:
         )
 
 
-@app.post("/ai/chat", response_model=TextResponse)
-def ai_chat(request: ChatRequest) -> TextResponse:
+@app.post("/ai/chat", response_model=ChatResponse)
+def ai_chat(request: ChatRequest) -> ChatResponse:
     context = _context_or_404(request.borough_id)
     comparison = (
         _context_or_404(request.compare_borough_id) if request.compare_borough_id else None
     )
-    content = _generate_request_text(
-        request.ai_provider,
-        lambda generator: generator(
-            chat_prompt(
-                context,
-                request.question,
-                request.previous_context,
-                comparison,
-                request.locale,
-            )
-        ),
+    prompt = chat_prompt(
+        context,
+        request.question,
+        request.previous_context,
+        comparison,
+        request.locale,
     )
-    return TextResponse(content=sanitize_ai_text(content, request.locale))
+    answer = _generate_structured_request(
+        request.ai_provider,
+        lambda: generate_chat(prompt),
+        lambda provider: generate_live_chat(prompt, provider),
+    )
+    answer = sanitize_chat_answer(answer, request.locale)
+    return ChatResponse(content=answer.summary, answer=answer)
 
 
-@app.post("/ai/compare", response_model=TextResponse)
-def ai_compare(request: CompareRequest) -> TextResponse:
+@app.post("/ai/compare", response_model=CompareResponse)
+def ai_compare(request: CompareRequest) -> CompareResponse:
     context = _context_or_404(request.borough_id)
     comparison = _context_or_404(request.compare_borough_id)
-    content = _generate_request_text(
-        request.ai_provider,
-        lambda generator: generator(
-            comparison_prompt(
-                context, comparison, request.previous_context, request.locale
-            )
-        ),
+    prompt = comparison_prompt(
+        context, comparison, request.previous_context, request.locale
     )
-    return TextResponse(content=sanitize_ai_text(content, request.locale))
+    answer = _generate_structured_request(
+        request.ai_provider,
+        lambda: generate_comparison(prompt),
+        lambda provider: generate_live_comparison(prompt, provider),
+    )
+    answer = sanitize_compare_answer(answer, request.locale)
+    return CompareResponse(content=answer.summary, answer=answer)
 
 
 @app.post("/ai/report", response_model=TextResponse)
@@ -319,6 +333,21 @@ def pdf_report(request: PDFReportRequest) -> Response:
     )
 
 
+@app.post("/conversations/pdf")
+def conversation_pdf(request: ConversationPDFRequest) -> Response:
+    context = _context_or_404(request.borough_id)
+    content = build_conversation_pdf(context, request)
+    borough_slug = re.sub(
+        r"[^A-Za-z0-9_-]+", "_", context["borough"]["name"]
+    ).strip("_")
+    filename = f"UrbanInsight_{borough_slug}_Conversation.pdf"
+    return Response(
+        content=content,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 def _context_or_404(borough_id: str) -> dict[str, Any]:
     try:
         return build_analysis_context(borough_id)
@@ -337,6 +366,15 @@ def _generate_request_text(provider_name: str | None, operation: Any) -> str:
         ),
         provider_name,
     )
+
+
+def _generate_structured_request(
+    provider_name: str | None, mock_operation: Any, live_operation: Any
+) -> Any:
+    if configured_mode() == "mock":
+        return _run_agent(mock_operation)
+    selected_provider = configured_live_provider(provider_name)
+    return _run_agent(lambda: live_operation(selected_provider), selected_provider)
 
 
 def _run_agent(operation: Any, provider_name: str | None = None) -> Any:

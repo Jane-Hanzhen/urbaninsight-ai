@@ -12,17 +12,21 @@ The web application never reads the CSV or SQLite directly.
 
 ## Public repository distribution
 
-The local CSV and GeoJSON files are runtime inputs, not distributable project assets.
-Their compiled provenance and redistribution rights have not yet been verified across
-all upstream sources, so the public repository excludes:
+The private CSV and canonical geographic working copy remain excluded from Git:
 
 - `data/london_indicators.csv`
 - `data/london_boroughs.geojson`
-- `public/data/london_boroughs.geojson`
 
-Developers must prepare appropriately licensed files at these paths. The schemas and
-runtime behavior below remain authoritative. Third-party data is not covered by the
-project software licence.
+The processed indicator CSV is private analytical data and is injected during
+deployment. The London borough boundary GeoJSON is prepared from
+[`radoi90/housequest-data`](https://github.com/radoi90/housequest-data), whose
+repository publishes it under the MIT licence. The upstream copyright and licence
+notice must be retained when the boundary is redistributed. Third-party data is not
+covered by the project software licence.
+
+The attributed browser copy is tracked at
+`public/data/london_boroughs.geojson` together with
+`public/data/LICENSE.housequest-data.txt`.
 
 The Analysis Engine and AI Context Builder read SQLite through the backend repository layer.
 

@@ -5,7 +5,7 @@
   "ai": {
     "platform": "城市决策智能平台", "idleTitle": "你好，我是 Urban。", "assistant": "你的城市决策智能 AI 助手。", "capabilities": "我可以帮助你评估行政区潜力、发现区域洞察、比较不同地区，并生成面向决策的分析报告。", "explore": "让我们一起探索伦敦。", "begin": "点击一个行政区开始分析。",
     "looking": "正在查看 {{borough}}……", "clickAnalyze": "正在查看 {{borough}}……点击开始分析。", "selectedTitle": "已选择 {{borough}}", "analyzingTitle": "正在分析 {{borough}}……", "complete": "分析完成", "selectedBody": "已选择 {{borough}}，正在准备分析流程。", "analyzingBody": "已选择 {{borough}}，Urban 正在解读分析引擎结果。",
-    "overallScore": "综合得分", "regionalRank": "区域排名", "followUpHint": "继续提问或与另一个行政区比较。", "compareQuestion": "与 {{borough}} 比较。", "askPlaceholder": "询问此行政区", "askLabel": "向 Urban 追问", "send": "发送问题", "comparePlaceholder": "选择比较对象……", "compareLabel": "要比较的行政区", "compare": "比较", "insightsControl": "AI 深度解读", "providerLabel": "AI 模型", "providers": { "deepseek": "DeepSeek", "qwen": "千问", "openai": "OpenAI" }, "settingNextAnalysis": "设置将在下次分析时生效", "basicCompleteHint": "基础分析已完成，可生成报告或选择其他行政区。", "progressLabel": "分析进度",
+    "overallScore": "综合得分", "regionalRank": "区域排名", "followUpHint": "继续提问或与另一个行政区比较。", "compareQuestion": "与 {{borough}} 比较。", "askPlaceholder": "询问此行政区", "askLabel": "向 Urban 追问", "send": "发送问题", "analyzingResponse": "Urban 正在分析…", "requestErrorTitle": "Urban 暂时无法完成分析", "requestErrorBody": "请稍后重试。", "retryAnalysis": "重新分析", "exportConversation": "导出对话", "exportingConversation": "正在导出对话…", "comparePlaceholder": "选择比较对象……", "compareLabel": "要比较的行政区", "compare": "比较", "viewEvidence": "查看数据依据", "insightsControl": "AI 深度解读", "providerLabel": "AI 模型", "providers": { "deepseek": "DeepSeek", "qwen": "千问", "openai": "OpenAI" }, "settingNextAnalysis": "设置将在下次分析时生效", "basicCompleteHint": "基础分析已完成，可生成报告或选择其他行政区。", "progressLabel": "分析进度",
     "progress": ["正在加载区域指标……", "正在读取分析引擎结果……", "正在构建结构化上下文……", "正在解读结果……", "正在生成建议……"],
     "progressComplete": ["已加载区域指标", "已读取分析引擎结果", "已构建结构化上下文", "已解读结果", "已生成建议"]
   },
@@ -31,5 +31,5 @@
     "landscape_index": { "title": "景观指数", "description": "描述区域景观特征与生态空间结构。", "interpretation": "用于理解环境要素在空间上的分布与组合模式。" },
     "household_waste_recycling_rate_pct": { "title": "生活垃圾回收率", "description": "衡量进入再利用、回收或堆肥流程的生活垃圾比例。", "interpretation": "通常数值越高代表被回收利用的生活垃圾越多。" }
   },
-  "errors": { "boroughId": "无法获取 {{borough}} 的行政区 ID。", "ai": "AI 响应失败", "aiUnavailable": "AI 深度解读暂不可用", "providerUnavailable": "{{provider}} 深度解读暂不可用，当前展示完整基础分析结果。", "analysis": "无法加载分析数据", "comparison": "行政区比较失败", "report": "Markdown 导出失败", "pdfReport": "PDF 报告生成失败" }
+  "errors": { "boroughId": "无法获取 {{borough}} 的行政区 ID。", "ai": "AI 响应失败", "aiUnavailable": "AI 深度解读暂不可用", "providerUnavailable": "{{provider}} 深度解读暂不可用，当前展示完整基础分析结果。", "analysis": "无法加载分析数据", "comparison": "行政区比较失败", "report": "Markdown 导出失败", "pdfReport": "PDF 报告生成失败", "conversationExport": "对话导出失败，请重试。" }
 }

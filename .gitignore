@@ -42,11 +42,13 @@ build/
 *.sqlite
 *.sqlite3
 
-# Third-party research data pending redistribution review
+# Private analytical data and local geographic working copies
 data/*.csv
 data/*.geojson
 public/data/*.geojson
+# The attributed browser boundary is intentionally published with its upstream notice.
 !public/data/london_boroughs.geojson
+!public/data/LICENSE.housequest-data.txt
 private_data/
 **/private_data/
 

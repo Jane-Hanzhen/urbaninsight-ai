@@ -43,9 +43,16 @@
         "askPlaceholder": "Ask about this borough",
         "askLabel": "Ask Urban a follow-up question",
         "send": "Send question",
+        "analyzingResponse": "Urban is analyzing…",
+        "requestErrorTitle": "Urban couldn't complete the analysis.",
+        "requestErrorBody": "Please try again.",
+        "retryAnalysis": "Retry",
+        "exportConversation": "Export Conversation",
+        "exportingConversation": "Exporting conversation…",
         "comparePlaceholder": "Compare with...",
         "compareLabel": "Borough to compare",
         "compare": "Compare",
+        "viewEvidence": "View data evidence",
         "insightsControl": "AI Insights",
         "providerLabel": "AI model",
         "providers": {
@@ -228,6 +235,7 @@
         "analysis": "Analysis data could not be loaded",
         "comparison": "Borough comparison failed",
         "report": "Markdown export failed",
-        "pdfReport": "PDF report generation failed"
+        "pdfReport": "PDF report generation failed",
+        "conversationExport": "Conversation export failed. Please try again."
     }
 }

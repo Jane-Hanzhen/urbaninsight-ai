@@ -73,6 +73,55 @@ def markdown_payload(*, locale: str = "en", ai_applied: bool = False) -> dict[st
     return payload
 
 
+def conversation_payload(*, locale: str = "en") -> dict[str, object]:
+    chinese = locale == "zh-CN"
+    return {
+        "borough_id": "E09000007",
+        "locale": locale,
+        "messages": [
+            {
+                "role": "user",
+                "content": "这里哪方面表现特别好？" if chinese else "What stands out here?",
+            },
+            {
+                "role": "assistant",
+                "content": "服务可达性较强。" if chinese else "Service access stands out.",
+                "answer": {
+                    "response_type": "insight",
+                    "headline": "核心发现" if chinese else "Core finding",
+                    "summary": "服务与交通条件形成支持。" if chinese else "Services and transport provide support.",
+                    "key_points": [{
+                        "title": "公共服务" if chinese else "Public services",
+                        "detail": "当前指标体现出相对优势。" if chinese else "Current indicators show a relative advantage.",
+                        "tone": "positive",
+                    }],
+                    "bottom_line": "这是当前评价体系下的观察。" if chinese else "This is an observation under the current framework.",
+                    "limitations": None,
+                },
+            },
+            {
+                "role": "user",
+                "content": "比较 Camden" if chinese else "Compare Camden",
+            },
+            {
+                "role": "assistant",
+                "content": "两个区域优势不同。" if chinese else "The areas have different strengths.",
+                "answer": {
+                    "response_type": "comparison",
+                    "headline": "比较结论" if chinese else "Comparison finding",
+                    "summary": "两地呈现不同特征。" if chinese else "The two areas show different profiles.",
+                    "primary_advantages": [{"dimension": "公共服务" if chinese else "Public services", "explanation": "服务条件更突出。" if chinese else "Service conditions stand out."}],
+                    "comparison_advantages": [{"dimension": "生态环境" if chinese else "Environment", "explanation": "绿色环境指标更突出。" if chinese else "Green indicators stand out."}],
+                    "primary_positioning": {"borough_name": "City of London", "label": "服务驱动型" if chinese else "Service-led", "description": "服务基础较强。" if chinese else "A stronger service base."},
+                    "comparison_positioning": {"borough_name": "Camden", "label": "环境均衡型" if chinese else "Environmentally balanced", "description": "环境表现更均衡。" if chinese else "A more balanced environment."},
+                    "decision_note": "应结合实际目标判断。" if chinese else "Interpret the result against the user's priorities.",
+                    "evidence": [{"label": "综合得分" if chinese else "Overall score", "primary_value": "80", "comparison_value": "33.9"}],
+                },
+            },
+        ],
+    }
+
+
 class PDFReportEndpointTests(unittest.TestCase):
     def test_basic_pdf_uses_completed_payload_without_ai_call(self) -> None:
         client = TestClient(app)
@@ -115,6 +164,34 @@ class PDFReportEndpointTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("Camden_ai_report.pdf", response.headers["content-disposition"])
+        self.assertTrue(response.content.startswith(b"%PDF-"))
+        self.assertGreater(len(response.content), 10_000)
+
+
+class ConversationPDFEndpointTests(unittest.TestCase):
+    def test_conversation_pdf_preserves_order_without_ai_call(self) -> None:
+        client = TestClient(app)
+        with (
+            patch("app.main._context_or_404", return_value=report_context()),
+            patch("app.main.generate_text", side_effect=AssertionError("Conversation export called AI")),
+            patch("app.main.generate_live_text", side_effect=AssertionError("Conversation export called AI")),
+        ):
+            response = client.post("/conversations/pdf", json=conversation_payload())
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["content-type"], "application/pdf")
+        self.assertIn("Camden_Conversation.pdf", response.headers["content-disposition"])
+        self.assertTrue(response.content.startswith(b"%PDF-"))
+        self.assertGreater(len(response.content), 3_000)
+
+    def test_chinese_conversation_pdf_embeds_structured_content(self) -> None:
+        client = TestClient(app)
+        with patch("app.main._context_or_404", return_value=report_context()):
+            response = client.post(
+                "/conversations/pdf", json=conversation_payload(locale="zh-CN")
+            )
+
+        self.assertEqual(response.status_code, 200)
         self.assertTrue(response.content.startswith(b"%PDF-"))
         self.assertGreater(len(response.content), 10_000)
 

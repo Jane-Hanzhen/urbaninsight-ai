@@ -28,6 +28,50 @@ class AnalysisInsights(BaseModel):
     recommendations: list[RecommendationItem] = Field(min_length=2, max_length=4)
 
 
+class ChatKeyPoint(BaseModel):
+    title: str
+    detail: str
+    tone: Literal["positive", "neutral", "attention"] = "neutral"
+
+
+class ChatAnswer(BaseModel):
+    response_type: Literal["insight", "recommendation", "clarification"] = "insight"
+    headline: str
+    summary: str
+    key_points: list[ChatKeyPoint] = Field(default_factory=list, max_length=4)
+    bottom_line: str | None = None
+    limitations: str | None = None
+
+
+class ComparisonAdvantage(BaseModel):
+    dimension: str
+    explanation: str
+
+
+class BoroughPositioning(BaseModel):
+    borough_name: str
+    label: str
+    description: str
+
+
+class ComparisonEvidence(BaseModel):
+    label: str
+    primary_value: str
+    comparison_value: str
+
+
+class CompareAnswer(BaseModel):
+    response_type: Literal["comparison"] = "comparison"
+    headline: str
+    summary: str
+    primary_advantages: list[ComparisonAdvantage] = Field(default_factory=list, max_length=3)
+    comparison_advantages: list[ComparisonAdvantage] = Field(default_factory=list, max_length=3)
+    primary_positioning: BoroughPositioning
+    comparison_positioning: BoroughPositioning
+    decision_note: str
+    evidence: list[ComparisonEvidence] = Field(default_factory=list, max_length=3)
+
+
 class ChatMessage(BaseModel):
     role: Literal["user", "assistant"]
     content: str = Field(min_length=1, max_length=4000)
@@ -85,6 +129,14 @@ class TextResponse(BaseModel):
     content: str
 
 
+class ChatResponse(TextResponse):
+    answer: ChatAnswer
+
+
+class CompareResponse(TextResponse):
+    answer: CompareAnswer
+
+
 class PDFReportRequest(BaseModel):
     borough_id: str
     locale: SupportedLocale = "en"
@@ -95,3 +147,15 @@ class PDFReportRequest(BaseModel):
     ai_model: str | None = None
     ai_error: Literal["unavailable"] | None = None
     insights: AnalysisInsights
+
+
+class ConversationExportMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=4000)
+    answer: ChatAnswer | CompareAnswer | None = None
+
+
+class ConversationPDFRequest(BaseModel):
+    borough_id: str
+    locale: SupportedLocale = "en"
+    messages: list[ConversationExportMessage] = Field(min_length=1, max_length=100)

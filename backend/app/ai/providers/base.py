@@ -8,7 +8,7 @@ from openai import OpenAI
 from pydantic import ValidationError
 
 from ..prompt_builder import SYSTEM_INSTRUCTIONS
-from ..schemas import AnalysisInsights
+from ..schemas import AnalysisInsights, ChatAnswer, CompareAnswer
 
 
 class ProviderConfigurationError(RuntimeError):
@@ -42,6 +42,14 @@ class AIProvider(ABC):
 
     @abstractmethod
     def generate_text(self, prompt: str) -> str:
+        raise NotImplementedError
+
+    @abstractmethod
+    def generate_chat(self, prompt: str) -> ChatAnswer:
+        raise NotImplementedError
+
+    @abstractmethod
+    def generate_comparison(self, prompt: str) -> CompareAnswer:
         raise NotImplementedError
 
 
@@ -98,6 +106,27 @@ class OpenAICompatibleProvider(AIProvider):
             raise ProviderResponseError(self.name, f"{self.name} returned an empty response")
         return content
 
+    def generate_chat(self, prompt: str) -> ChatAnswer:
+        return self._generate_structured(prompt, ChatAnswer)
+
+    def generate_comparison(self, prompt: str) -> CompareAnswer:
+        return self._generate_structured(prompt, CompareAnswer)
+
+    def _generate_structured(self, prompt: str, schema_type: Any) -> Any:
+        schema = json.dumps(schema_type.model_json_schema(), separators=(",", ":"))
+        response = self._get_client().chat.completions.create(
+            model=self.model,
+            messages=self._messages(
+                prompt,
+                "Return one valid JSON object only. Do not use Markdown or code fences. "
+                f"The JSON must conform exactly to this schema: {schema}",
+            ),
+            response_format={"type": "json_object"},
+            stream=False,
+            **self._completion_options(),
+        )
+        return parse_structured_response(self._message_content(response), self.name, schema_type)
+
     def _get_client(self) -> OpenAI:
         if not self.is_configured():
             raise ProviderConfigurationError(
@@ -133,6 +162,10 @@ class OpenAICompatibleProvider(AIProvider):
 
 
 def parse_analysis_insights(content: str, provider_name: str) -> AnalysisInsights:
+    return parse_structured_response(content, provider_name, AnalysisInsights)
+
+
+def parse_structured_response(content: str, provider_name: str, schema_type: Any) -> Any:
     cleaned = content.strip()
     if cleaned.startswith("```"):
         lines = cleaned.splitlines()
@@ -146,13 +179,14 @@ def parse_analysis_insights(content: str, provider_name: str) -> AnalysisInsight
         payload = json.loads(cleaned)
     except json.JSONDecodeError as error:
         raise ProviderResponseError(
-            provider_name, f"{provider_name} returned invalid JSON for AnalysisInsights"
+            provider_name,
+            f"{provider_name} returned invalid JSON for {schema_type.__name__}",
         ) from error
 
     try:
-        return AnalysisInsights.model_validate(payload)
+        return schema_type.model_validate(payload)
     except ValidationError as error:
         raise ProviderResponseError(
             provider_name,
-            f"{provider_name} returned JSON that failed AnalysisInsights validation: {error}",
+            f"{provider_name} returned JSON that failed {schema_type.__name__} validation: {error}",
         ) from error

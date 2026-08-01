@@ -1,6 +1,6 @@
 # UrbanInsight AI Deployment Guide
 
-This guide prepares the portfolio demo for deployment without embedding credentials or redistributing unreviewed data. It does not represent an active deployment.
+This guide documents the current Vercel + Railway release architecture without embedding credentials or publishing the private indicator dataset. It does not claim a verified public URL.
 
 ## Deployment Architecture
 
@@ -9,7 +9,7 @@ Vercel
   React + Vite frontend
   public/data/london_boroughs.geojson
         ↓ HTTPS
-Python web service
+Railway
   FastAPI + Uvicorn
   precomputed SQLite analysis database
         ↓ optional
@@ -19,7 +19,7 @@ Mock, DeepSeek, or Qwen provider
 Recommended first public-demo configuration:
 
 - Frontend: Vercel
-- Backend: Render or another Python ASGI host
+- Backend: Railway
 - Database: precomputed, read-mostly SQLite
 - AI: `AI_MODE=mock`
 
@@ -28,11 +28,12 @@ Recommended first public-demo configuration:
 - Node.js 20 or later
 - pnpm
 - Python 3.11 or later
-- Appropriately licensed indicator CSV and borough GeoJSON
+- Private indicator CSV matching the documented schema
+- London borough GeoJSON from the attributed public source
 - A public HTTPS domain for the backend
 - A public HTTPS domain for the frontend
 
-Do not deploy the current local data until its provenance, attribution, and redistribution rights have been confirmed.
+Do not commit the private indicator CSV. The browser-served borough boundary must retain the upstream attribution and MIT licence notice described below.
 
 ## Frontend Deployment
 
@@ -70,6 +71,17 @@ If `VITE_API_URL` is omitted, the client falls back to `http://127.0.0.1:8000`, 
 The map fetches `/data/london_boroughs.geojson` from the frontend origin. The backend does not serve this file.
 
 ## Backend Deployment
+
+### Railway service settings
+
+| Setting | Value |
+| --- | --- |
+| Root Directory | `backend` |
+| Build Command | `pip install -r requirements.txt` |
+| Start Command | `bash start.sh` |
+| Health Check Path | `/health` |
+
+Railway supplies `PORT` at runtime. The startup script requires it and binds Uvicorn to `0.0.0.0:$PORT`.
 
 ### Runtime and commands
 
@@ -111,25 +123,7 @@ starting.
 
 ### Private Dataset Configuration
 
-The public GitHub repository does not contain `london_indicators.csv`. Provide
-the private dataset to the Render backend as a Secret File instead of adding it
-to the repository.
-
-Configure the Secret File in the Render Dashboard with:
-
-```text
-Filename:
-london_indicators.csv
-
-Runtime path:
-/etc/secrets/london_indicators.csv
-```
-
-Point the import process at the runtime file:
-
-```env
-URBANINSIGHT_DATA_PATH=/etc/secrets/london_indicators.csv
-```
+The public GitHub repository does not contain `london_indicators.csv`. Inject the private dataset through a Railway Volume/private file workflow, or use the Base64 variable option below. Never add the source CSV to the repository or a frontend variable.
 
 #### Railway Base64 injection
 
@@ -189,9 +183,12 @@ Expected response:
 AI_MODE=mock
 AI_PROVIDER=deepseek
 BACKEND_CORS_ORIGINS=https://urbaninsight-ai.vercel.app
-URBANINSIGHT_DATA_PATH=/etc/secrets/london_indicators.csv
-URBANINSIGHT_DB_PATH=urban_insight.db
+URBANINSIGHT_DATA_PATH=/data/london_indicators.csv
+URBANINSIGHT_DB_PATH=/data/urban_insight.db
+PORT=8000
 ```
+
+Railway normally injects `PORT`; the shown value is only an example for local parity. Add `URBANINSIGHT_DATA_BASE64` when using variable-based CSV injection. Live mode additionally requires the selected provider's API key, model, and optional base URL.
 
 `BACKEND_CORS_ORIGINS` accepts a comma-separated list of exact HTTP or HTTPS Origins:
 
@@ -222,7 +219,7 @@ bash backend/start.sh
 The private CSV path and generated database path are configured with:
 
 ```env
-URBANINSIGHT_DATA_PATH=/etc/secrets/london_indicators.csv
+URBANINSIGHT_DATA_PATH=/data/london_indicators.csv
 URBANINSIGHT_DB_PATH=urban_insight.db
 ```
 
@@ -267,7 +264,8 @@ In Mock mode:
 
 - selecting Qwen or DeepSeek in the UI does not create an external API client;
 - structured AI analysis uses local Mock responses;
-- follow-up chat, comparison, and Markdown reports use local Mock responses;
+- follow-up chat and comparison use local Mock responses;
+- Markdown and PDF exports render deterministically from the completed analysis and do not call an LLM;
 - the selected Provider name remains in response metadata for UI continuity;
 - the response model is reported as `urbaninsight-mock`;
 - no Provider-unavailable warning is expected from missing keys;
@@ -304,17 +302,17 @@ If the public UI should demonstrate switching between Qwen and DeepSeek in Live 
 | File | Purpose | Must be public? | Git status | Deployment and licensing notes |
 | --- | --- | --- | --- | --- |
 | `data/london_indicators.csv` | Backend import source for borough indicators | Not as a direct download, but its values are exposed through the API | Ignored | Redistribution and derived-data exposure require a provenance and rights review before a public demo. |
-| `data/london_boroughs.geojson` | Canonical local borough-boundary working copy | No, if the approved browser copy is prepared separately | Ignored | Current compiled artifact lacks sufficient field-level licensing metadata for publication. |
-| `public/data/london_boroughs.geojson` | Browser-served map geometry | Yes, because Vercel serves it to every visitor | Ignored | A reviewed, appropriately licensed copy with required attribution is mandatory for the public map. |
+| `data/london_boroughs.geojson` | Canonical local borough-boundary working copy | No | Ignored | Local duplicate of the attributed browser boundary. |
+| `public/data/london_boroughs.geojson` | Browser-served map geometry | Yes, because Vercel serves it to every visitor | Tracked | Source: `radoi90/housequest-data`; the adjacent upstream MIT notice is retained. |
 | `backend/urban_insight.db` | Generated borough, indicator, and analysis-result database | Not as a downloadable file | Ignored | May be generated during deployment or stored on a volume; public API responses still require source-data rights review. |
 
 Current conclusions:
 
-- all three source-data files exist locally;
-- none is tracked by Git;
-- no file was downloaded, replaced, or modified during deployment preparation;
-- the existing compiled artifacts are not yet approved for public deployment;
-- a public demo remains blocked until an appropriately licensed dataset is prepared.
+- the processed indicator CSV remains private and untracked;
+- the canonical working GeoJSON is ignored; the browser-served copy and its upstream notice are tracked;
+- the borough boundary source is [`radoi90/housequest-data`](https://github.com/radoi90/housequest-data), published under its upstream MIT licence;
+- deployment must inject the private CSV and prepare the attributed browser GeoJSON before build/startup;
+- third-party data remains outside the scope of any UrbanInsight AI software licence.
 
 ## Local Validation
 
@@ -341,8 +339,8 @@ Automated tests use Mock Provider calls and must not contact paid LLM APIs.
 
 ## Pre-deployment checklist
 
-- [ ] Confirm CSV and GeoJSON redistribution rights and attribution.
-- [ ] Provide an approved frontend GeoJSON build artifact.
+- [ ] Inject the private indicator CSV without committing it.
+- [ ] Confirm the tracked frontend GeoJSON and `LICENSE.housequest-data.txt` are present in the Vercel build.
 - [ ] Initialize SQLite with `import_data` and `run_analysis`.
 - [ ] Set `URBANINSIGHT_DB_PATH` to the generated or mounted database.
 - [ ] Deploy the backend and verify `/health`.

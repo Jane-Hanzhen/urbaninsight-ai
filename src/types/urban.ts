@@ -71,6 +71,31 @@ export type AIAnalysisResponse = {
 
 export type AIProvider = "deepseek" | "qwen";
 
+export type AIChatKeyPoint = { title: string; detail: string; tone: "positive" | "neutral" | "attention" };
+export type AIChatAnswer = {
+  response_type: "insight" | "recommendation" | "clarification";
+  headline: string;
+  summary: string;
+  key_points: AIChatKeyPoint[];
+  bottom_line: string | null;
+  limitations: string | null;
+};
+export type AIComparisonAdvantage = { dimension: string; explanation: string };
+export type AIBoroughPositioning = { borough_name: string; label: string; description: string };
+export type AIComparisonEvidence = { label: string; primary_value: string; comparison_value: string };
+export type AICompareAnswer = {
+  response_type: "comparison";
+  headline: string;
+  summary: string;
+  primary_advantages: AIComparisonAdvantage[];
+  comparison_advantages: AIComparisonAdvantage[];
+  primary_positioning: AIBoroughPositioning;
+  comparison_positioning: AIBoroughPositioning;
+  decision_note: string;
+  evidence: AIComparisonEvidence[];
+};
+export type AIStructuredAnswer = AIChatAnswer | AICompareAnswer;
+
 export type CompletedAnalysisMetadata = Pick<
   AIAnalysisResponse,
   | "analysis_mode"
@@ -84,6 +109,7 @@ export type CompletedAnalysisMetadata = Pick<
 export type AIMessage = {
   role: "user" | "assistant";
   content: string;
+  answer?: AIStructuredAnswer;
 };
 
 export type MockAnalysis = {

@@ -2,7 +2,7 @@
 
 [Back to portfolio overview](../README.md) | [简体中文首页](../README.zh-CN.md)
 
-This guide preserves the full technical, setup, data, licensing, API, validation, and limitation details for UrbanInsight AI. The project is a local, portfolio-stage application. It has not been publicly deployed, and the repository does not include third-party source datasets or API credentials.
+This guide preserves the technical, setup, data, licensing, API, validation, and limitation details for UrbanInsight AI. The release architecture uses Vercel for the frontend and Railway for the backend; no verified public demo URL is currently recorded. The repository excludes the private indicator dataset and all API credentials.
 
 ## Project Timeline and Role
 
@@ -61,7 +61,7 @@ The frontend never reads SQLite or the indicator CSV directly. The AI layer rece
 | Localization | i18next, react-i18next |
 | Backend | Python, FastAPI, Pydantic |
 | Database | SQLite |
-| Analysis | NumPy, pandas, scikit-learn |
+| Analysis | NumPy with a project-owned PCA-TOPSIS pipeline |
 | AI | OpenAI Python SDK with OpenAI, Qwen, DeepSeek, and mock strategies |
 | Tests | Python `unittest`, FastAPI TestClient, mocked provider calls |
 
@@ -85,17 +85,17 @@ The original 2024-2025 research used POI, land use, Landsat, official statistics
 
 The research report references OpenStreetMap/Overpass Turbo, Impact Observatory/Esri Living Atlas land cover, USGS Landsat, London Datastore/ONS statistics, and UK Data Service boundary data. These upstream sources use different licences and attribution requirements.
 
-The compiled local CSV and GeoJSON files do not contain sufficient field-level provenance or licence metadata to prove that the compiled artifacts may be redistributed. They are therefore intentionally excluded from this public repository pending a separate rights review. They are not covered by any licence that may later be applied to the project software.
+The processed indicator CSV is private analytical data and is intentionally excluded from the public repository. The London borough boundary GeoJSON is sourced from [`radoi90/housequest-data`](https://github.com/radoi90/housequest-data), whose repository publishes the file under the MIT licence. Retain the upstream copyright and licence notice when redistributing the boundary file. Neither dataset is covered by any licence that may later be applied to the project software.
 
-To run the project, prepare appropriately licensed data at:
+To run the complete analysis pipeline, prepare the private indicator data and local
+working boundary at:
 
 ```text
 data/london_indicators.csv
 data/london_boroughs.geojson
-public/data/london_boroughs.geojson
 ```
 
-The two GeoJSON paths currently contain the same `FeatureCollection`: `data/` is the canonical working copy and `public/data/` is the browser-served copy. Each feature must use `Polygon` or `MultiPolygon` geometry and include a `properties.name` value matching `Region name`. Missing browser GeoJSON is handled without crashing, but map polygons will not be available.
+The tracked browser copy is `public/data/london_boroughs.geojson`, accompanied by `public/data/LICENSE.housequest-data.txt`. The two GeoJSON paths currently contain the same `FeatureCollection`: `data/` is the canonical working copy and `public/data/` is the browser-served copy. Each feature must use `Polygon` or `MultiPolygon` geometry and include a `properties.name` value matching `Region name`. Missing browser GeoJSON is handled without crashing, but map polygons will not be available.
 
 Relevant upstream terms should be checked before preparing data:
 
@@ -107,7 +107,7 @@ Relevant upstream terms should be checked before preparing data:
 
 ## AI Decision Agent
 
-The provider layer implements a common strategy interface for structured insights and plain-text responses. The web AI switch selects basic preset analysis or a request-level live analysis; the adjacent selector chooses DeepSeek or Qwen. `AI_PROVIDER` supplies the live default when a request omits the provider. `AI_MODE` remains available for legacy calls, CLI development, and automated test fixtures, but it does not override an explicit web AI request.
+The provider layer implements a common strategy interface for structured insights and plain-text responses. The web AI switch selects basic analysis or AI Insights for the next analysis; the adjacent selector chooses DeepSeek or Qwen. `AI_PROVIDER` supplies the default when a request omits the provider. `AI_MODE=mock` prevents all external LLM calls, including explicit web AI requests; `AI_MODE=live` uses the selected configured provider.
 
 For structured analysis, the provider is instructed to return JSON, the response is parsed defensively, and Pydantic validates it as `AnalysisInsights`. Chat, comparison, and report endpoints return plain text through unchanged API schemas.
 
@@ -142,8 +142,8 @@ backend/
     repository.py       database queries
   scripts/              CSV import and analysis runners
   tests/                backend and provider tests
-data/                   local source data (not distributed)
-public/data/            browser-served GeoJSON (not distributed)
+data/                   private indicator data and local geographic working copy
+public/data/            attributed browser-served GeoJSON and upstream notice
 specs/                  product, UI, data, backend, AI, and configuration specs
 src/
   app/                  application orchestration and state
@@ -208,6 +208,8 @@ Use `backend/.env.example` as the template. Never expose keys through Vite varia
 ```dotenv
 AI_MODE=mock
 AI_PROVIDER=deepseek
+BACKEND_CORS_ORIGINS=
+PORT=8000
 
 OPENAI_API_KEY=
 OPENAI_MODEL=gpt-4o-mini
@@ -221,6 +223,8 @@ DEEPSEEK_MODEL=
 DEEPSEEK_BASE_URL=https://api.deepseek.com
 
 URBANINSIGHT_DB_PATH=
+URBANINSIGHT_DATA_PATH=
+URBANINSIGHT_DATA_BASE64=
 ```
 
 Recommended workflow:
@@ -268,8 +272,8 @@ Interactive API documentation is available at `http://127.0.0.1:8000/docs` while
 
 ## Current Limitations
 
-- Third-party source datasets are not distributed, so local setup requires separately prepared, appropriately licensed data.
-- The project has not been publicly deployed or production-hardened.
+- The processed indicator dataset is private, so a complete local setup requires that CSV to be supplied separately.
+- The repository documents Vercel + Railway deployment, but does not currently record a verified public demo URL; the product is not production-hardened.
 - SQLite and the local import workflow are intended for a single-user demonstration.
 - Live AI behavior depends on provider availability, model access, quota, and supplied credentials.
 - AI recommendations are decision support, not a substitute for domain review.

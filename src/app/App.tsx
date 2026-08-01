@@ -9,6 +9,7 @@ import { mockAnalysis } from "@/data/mock/urbanInsight";
 import {
   askAI,
   compareBoroughs,
+  exportConversationPDF,
   fetchAnalysis,
   fetchAIStatus,
   fetchBoroughs,
@@ -33,6 +34,10 @@ import { currentLocale, type SupportedLocale } from "@/i18n";
 const AI_INSIGHTS_STORAGE_KEY = "urbaninsight-ai-insights-enabled";
 const AI_PROVIDER_STORAGE_KEY = "urbaninsight-ai-provider";
 
+type FailedAIRequest =
+  | { type: "chat"; boroughId: string; question: string; previousContext: AIMessage[]; locale: SupportedLocale; provider?: AIProvider }
+  | { type: "compare"; boroughId: string; compareBoroughId: string; previousContext: AIMessage[]; locale: SupportedLocale; provider?: AIProvider };
+
 export function App() {
   const { t } = useTranslation();
   const [hoveredBorough, setHoveredBorough] = useState<string | null>(null);
@@ -45,6 +50,9 @@ export function App() {
   const [aiError, setAIError] = useState<string | null>(null);
   const [messages, setMessages] = useState<AIMessage[]>([]);
   const [isReplying, setIsReplying] = useState(false);
+  const [failedAIRequest, setFailedAIRequest] = useState<FailedAIRequest | null>(null);
+  const [isConversationExporting, setIsConversationExporting] = useState(false);
+  const [conversationExportError, setConversationExportError] = useState<string | null>(null);
   const [reportFormat, setReportFormat] = useState<"pdf" | "markdown" | null>(null);
   const [reportError, setReportError] = useState<string | null>(null);
   const [aiInsightsEnabled, setAIInsightsEnabled] = useState(
@@ -230,6 +238,8 @@ export function App() {
     setAIInsights(null);
     setAIError(null);
     setMessages([]);
+    setFailedAIRequest(null);
+    setConversationExportError(null);
     setReportError(null);
     setIndicators(null);
     setAnalysisResult(null);
@@ -280,54 +290,107 @@ export function App() {
 
   const handleAsk = useCallback(async (question: string) => {
     if (!selectedBoroughRecord) return;
+    const locale = currentLocale();
+    const provider = completedAIProvider(completedMetadata);
+    const request: FailedAIRequest = {
+      type: "chat",
+      boroughId: selectedBoroughRecord.id,
+      question,
+      previousContext: messages,
+      locale,
+      provider
+    };
     const userMessage: AIMessage = { role: "user", content: question };
     const context = [...messages, userMessage];
     setMessages(context);
     setIsReplying(true);
+    setFailedAIRequest(null);
     setAIError(null);
     try {
       const response = await askAI(
-        selectedBoroughRecord.id,
+        request.boroughId,
         question,
-        messages,
-        currentLocale(),
+        request.previousContext,
+        locale,
         undefined,
-        completedAIProvider(completedMetadata)
+        provider
       );
-      setMessages((current) => [...current, { role: "assistant", content: response.content }]);
+      setMessages((current) => [...current, { role: "assistant", content: response.content, answer: response.answer }]);
     } catch (error) {
-      setAIError(t("errors.ai"));
+      setFailedAIRequest(request);
     } finally {
       setIsReplying(false);
     }
-  }, [completedMetadata, messages, selectedBoroughRecord, t]);
+  }, [completedMetadata, messages, selectedBoroughRecord]);
 
   const handleCompare = useCallback(async (compareBoroughId: string) => {
     if (!selectedBoroughRecord) return;
     const comparison = boroughs.find((borough) => borough.id === compareBoroughId);
     if (!comparison) return;
+    const locale = currentLocale();
+    const provider = completedAIProvider(completedMetadata);
+    const request: FailedAIRequest = {
+      type: "compare",
+      boroughId: selectedBoroughRecord.id,
+      compareBoroughId,
+      previousContext: messages,
+      locale,
+      provider
+    };
     const userMessage: AIMessage = {
       role: "user",
       content: t("ai.compareQuestion", { borough: comparison.name })
     };
     setMessages((current) => [...current, userMessage]);
     setIsReplying(true);
+    setFailedAIRequest(null);
     setAIError(null);
     try {
       const response = await compareBoroughs(
-        selectedBoroughRecord.id,
+        request.boroughId,
         compareBoroughId,
-        messages,
-        currentLocale(),
-        completedAIProvider(completedMetadata)
+        request.previousContext,
+        locale,
+        provider
       );
-      setMessages((current) => [...current, { role: "assistant", content: response.content }]);
+      setMessages((current) => [...current, { role: "assistant", content: response.content, answer: response.answer }]);
     } catch (error) {
-      setAIError(t("errors.comparison"));
+      setFailedAIRequest(request);
     } finally {
       setIsReplying(false);
     }
   }, [boroughs, completedMetadata, messages, selectedBoroughRecord, t]);
+
+  const handleRetryAI = useCallback(async () => {
+    if (!failedAIRequest || isReplying) return;
+    const request = failedAIRequest;
+    setFailedAIRequest(null);
+    setIsReplying(true);
+    try {
+      const response = request.type === "chat"
+        ? await askAI(request.boroughId, request.question, request.previousContext, request.locale, undefined, request.provider)
+        : await compareBoroughs(request.boroughId, request.compareBoroughId, request.previousContext, request.locale, request.provider);
+      setMessages((current) => [...current, { role: "assistant", content: response.content, answer: response.answer }]);
+    } catch (error) {
+      setFailedAIRequest(request);
+    } finally {
+      setIsReplying(false);
+    }
+  }, [failedAIRequest, isReplying]);
+
+  const handleExportConversation = useCallback(async () => {
+    if (!selectedBoroughRecord || messages.length === 0 || isConversationExporting) return;
+    setIsConversationExporting(true);
+    setConversationExportError(null);
+    try {
+      const blob = await exportConversationPDF(selectedBoroughRecord.id, currentLocale(), messages);
+      downloadConversationPDF(blob, selectedBoroughRecord.name);
+    } catch (error) {
+      setConversationExportError(t("errors.conversationExport"));
+    } finally {
+      setIsConversationExporting(false);
+    }
+  }, [isConversationExporting, messages, selectedBoroughRecord, t]);
 
   const handleGenerateMarkdown = useCallback(async () => {
     if (!selectedBoroughRecord || !completedMetadata || !aiInsights || !analysisResult) return;
@@ -470,8 +533,13 @@ export function App() {
           analysisUsedAI={analysisUsedAI}
           progressStep={progressStep}
           isReplying={isReplying}
+          hasFailedRequest={failedAIRequest !== null}
+          isConversationExporting={isConversationExporting}
+          conversationExportError={conversationExportError}
           onAsk={handleAsk}
           onCompare={handleCompare}
+          onRetry={handleRetryAI}
+          onExportConversation={handleExportConversation}
         />
       }
       analysis={
@@ -696,6 +764,18 @@ function downloadPDF(
     : aiInsightsApplied ? "AI_In-depth_Analysis_Report" : "Basic_Analysis_Report";
   anchor.href = url;
   anchor.download = `UrbanInsight_${borough}_${reportType}_${date}.pdf`;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+function downloadConversationPDF(blob: Blob, boroughName: string) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  const date = new Date().toISOString().slice(0, 10);
+  anchor.href = url;
+  anchor.download = `UrbanInsight_${safeFilenamePart(boroughName)}_Conversation_${date}.pdf`;
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();

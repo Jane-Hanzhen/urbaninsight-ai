@@ -80,6 +80,38 @@ def valid_insights_payload() -> dict[str, object]:
     }
 
 
+def valid_chat_payload() -> dict[str, object]:
+    return {
+        "response_type": "insight",
+        "headline": "A clear finding",
+        "summary": "A concise answer grounded in the supplied context.",
+        "key_points": [
+            {"title": "Evidence", "detail": "A supported point.", "tone": "positive"}
+        ],
+        "bottom_line": "A practical takeaway.",
+        "limitations": None,
+    }
+
+
+def valid_compare_payload() -> dict[str, object]:
+    positioning = {
+        "borough_name": "Camden",
+        "label": "Balanced urban area",
+        "description": "An interpretive positioning statement.",
+    }
+    return {
+        "response_type": "comparison",
+        "headline": "The boroughs have different strengths",
+        "summary": "A concise comparison.",
+        "primary_advantages": [{"dimension": "Social", "explanation": "Stronger access."}],
+        "comparison_advantages": [{"dimension": "Ecological", "explanation": "Stronger environment."}],
+        "primary_positioning": positioning,
+        "comparison_positioning": {**positioning, "borough_name": "Westminster"},
+        "decision_note": "Choose based on the decision priority.",
+        "evidence": [],
+    }
+
+
 def completion(content: str) -> SimpleNamespace:
     return SimpleNamespace(
         choices=[SimpleNamespace(message=SimpleNamespace(content=content))]
@@ -121,7 +153,19 @@ class PromptBuilderTests(unittest.TestCase):
         self.assertIn('"comparison_borough"', prompt)
         self.assertIn('"name": "Camden"', prompt)
         self.assertIn('"name": "Westminster"', prompt)
-        self.assertIn("do not derive a new score or ranking", prompt)
+        self.assertIn("Do not derive a new score or ranking", prompt)
+        self.assertIn("Do not use\nMarkdown", prompt)
+        self.assertIn("under the current evaluation framework", prompt)
+        self.assertIn("Never state that one borough is simply better", prompt)
+        self.assertIn("no more than one decimal place", prompt)
+
+    def test_chat_prompt_uses_evidence_bounded_language(self) -> None:
+        prompt = chat_prompt(sample_context("Camden", 78.6, 3), "What stands out?", [])
+
+        self.assertIn("Do not predict future industries", prompt)
+        self.assertIn("claim absolute\ncausation", prompt)
+        self.assertIn("Round overall and dimension\nscores to one decimal place", prompt)
+        self.assertIn("provides underlying conditions for", prompt)
 
     def test_all_prompts_include_requested_output_language(self) -> None:
         context = sample_context("Camden", 78.6, 3)
@@ -376,8 +420,10 @@ class ProviderGenerationTests(unittest.TestCase):
         self.assertEqual(analyze.json()["analysis_mode"], "basic")
         self.assertFalse(analyze.json()["ai_insights_applied"])
         self.assertIn("executive_summary", analyze.json()["insights"])
-        self.assertEqual(chat.json(), {"content": MOCK_CHAT_RESPONSE})
-        self.assertEqual(comparison.json(), {"content": MOCK_COMPARISON_RESPONSE})
+        self.assertEqual(chat.json()["content"], MOCK_CHAT_RESPONSE)
+        self.assertEqual(chat.json()["answer"]["response_type"], "insight")
+        self.assertEqual(comparison.json()["content"], MOCK_COMPARISON_RESPONSE)
+        self.assertEqual(comparison.json()["answer"]["response_type"], "comparison")
         self.assertTrue(
             report.json()["content"].startswith(
                 "# UrbanInsight AI In-depth Analysis Report"
@@ -409,10 +455,10 @@ class ProviderGenerationTests(unittest.TestCase):
             analyze.json()["insights"]["executive_summary"],
             MOCK_INSIGHTS_ZH_CN.executive_summary,
         )
-        self.assertEqual(chat.json(), {"content": MOCK_CHAT_RESPONSE_ZH_CN})
-        self.assertEqual(
-            comparison.json(), {"content": MOCK_COMPARISON_RESPONSE_ZH_CN}
-        )
+        self.assertEqual(chat.json()["content"], MOCK_CHAT_RESPONSE_ZH_CN)
+        self.assertEqual(chat.json()["answer"]["response_type"], "insight")
+        self.assertEqual(comparison.json()["content"], MOCK_COMPARISON_RESPONSE_ZH_CN)
+        self.assertEqual(comparison.json()["answer"]["response_type"], "comparison")
         self.assertTrue(
             report.json()["content"].startswith(
                 "# UrbanInsight 基础分析报告"
@@ -576,7 +622,8 @@ class ProviderGenerationTests(unittest.TestCase):
                     )
 
         generate_live_text.assert_not_called()
-        self.assertEqual(chat.json(), {"content": MOCK_CHAT_RESPONSE})
+        self.assertEqual(chat.json()["content"], MOCK_CHAT_RESPONSE)
+        self.assertEqual(chat.json()["answer"]["response_type"], "insight")
         self.assertTrue(
             report.json()["content"].startswith(
                 "# UrbanInsight AI In-depth Analysis Report"
@@ -665,6 +712,38 @@ class ProviderGenerationTests(unittest.TestCase):
         call = client.chat.completions.create.call_args.kwargs
         self.assertEqual(call["response_format"], {"type": "json_object"})
         self.assertFalse(call["stream"])
+
+    def test_deepseek_chat_is_parsed_and_validated(self) -> None:
+        provider = DeepSeekProvider(
+            api_key="test-key", model="test-model", base_url="https://example.test"
+        )
+        client = MagicMock()
+        client.chat.completions.create.return_value = completion(json.dumps(valid_chat_payload()))
+        provider._client = client
+
+        answer = provider.generate_chat("question")
+
+        self.assertEqual(answer.response_type, "insight")
+        self.assertEqual(answer.headline, "A clear finding")
+        self.assertEqual(
+            client.chat.completions.create.call_args.kwargs["response_format"],
+            {"type": "json_object"},
+        )
+
+    def test_qwen_comparison_is_parsed_and_validated(self) -> None:
+        provider = QwenProvider(
+            api_key="test-key", model="test-model", base_url="https://example.test"
+        )
+        client = MagicMock()
+        client.chat.completions.create.return_value = completion(json.dumps(valid_compare_payload()))
+        provider._client = client
+
+        answer = provider.generate_comparison("compare")
+
+        self.assertEqual(answer.response_type, "comparison")
+        call = client.chat.completions.create.call_args.kwargs
+        self.assertEqual(call["response_format"], {"type": "json_object"})
+        self.assertEqual(call["extra_body"], {"enable_thinking": False})
 
     def test_invalid_structured_json_raises_clear_error(self) -> None:
         provider = QwenProvider(

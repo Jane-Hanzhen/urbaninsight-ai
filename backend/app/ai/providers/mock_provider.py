@@ -4,7 +4,7 @@ import random
 import time
 from collections.abc import Callable
 
-from ..schemas import AnalysisInsights
+from ..schemas import AnalysisInsights, ChatAnswer, CompareAnswer
 from .base import AIProvider
 
 
@@ -146,6 +146,72 @@ MOCK_COMPARISON_RESPONSE_ZH_CN = (
     "所选行政区与对比行政区在现有维度得分、指标值和贡献结构上存在差异。"
     "所选行政区的优势是城市服务可达性较强，而对比地区呈现出不同的环境与经济权衡。"
 )
+
+MOCK_CHAT_ANSWER = ChatAnswer(
+    headline="Service access is the clearest opportunity",
+    summary=MOCK_CHAT_RESPONSE,
+    key_points=[
+        {
+            "title": "Build on existing access",
+            "detail": "Service and mobility access provide a practical base for future improvements.",
+            "tone": "positive",
+        },
+        {
+            "title": "Address uneven outcomes",
+            "detail": "Affordability and environmental signals deserve continued attention.",
+            "tone": "attention",
+        },
+    ],
+    bottom_line="The priority is to make existing urban strengths more balanced and inclusive.",
+)
+MOCK_CHAT_ANSWER_ZH_CN = ChatAnswer(
+    headline="服务可达性是最清晰的发展机会",
+    summary=MOCK_CHAT_RESPONSE_ZH_CN,
+    key_points=[
+        {"title": "发挥现有可达性", "detail": "服务与交通条件为后续改善提供了现实基础。", "tone": "positive"},
+        {"title": "改善不均衡结果", "detail": "住房负担与环境信号仍需要持续关注。", "tone": "attention"},
+    ],
+    bottom_line="重点是让现有城市优势更加均衡、包容。",
+)
+
+MOCK_COMPARE_ANSWER = CompareAnswer(
+    headline="The boroughs show different urban strengths",
+    summary=MOCK_COMPARISON_RESPONSE,
+    primary_advantages=[
+        {"dimension": "Urban access", "explanation": "The selected borough shows stronger service access."}
+    ],
+    comparison_advantages=[
+        {"dimension": "Environmental balance", "explanation": "The comparison borough highlights a different environmental trade-off."}
+    ],
+    primary_positioning={
+        "borough_name": "Selected borough",
+        "label": "Access-led urban area",
+        "description": "Its profile is shaped by stronger access to urban services.",
+    },
+    comparison_positioning={
+        "borough_name": "Comparison borough",
+        "label": "Balanced urban area",
+        "description": "Its profile reflects a different economic and environmental balance.",
+    },
+    decision_note="The more suitable borough depends on whether urban access or environmental balance matters more.",
+)
+MOCK_COMPARE_ANSWER_ZH_CN = CompareAnswer(
+    headline="两个行政区呈现出不同的城市优势",
+    summary=MOCK_COMPARISON_RESPONSE_ZH_CN,
+    primary_advantages=[{"dimension": "城市可达性", "explanation": "所选行政区的服务可达性相对更强。"}],
+    comparison_advantages=[{"dimension": "环境均衡", "explanation": "对比行政区呈现出不同的环境权衡。"}],
+    primary_positioning={
+        "borough_name": "所选行政区",
+        "label": "可达性驱动型区域",
+        "description": "其特征更多受到城市服务可达性的支撑。",
+    },
+    comparison_positioning={
+        "borough_name": "对比行政区",
+        "label": "均衡型城市区域",
+        "description": "其特征体现了不同的经济与环境平衡。",
+    },
+    decision_note="更适合的区域取决于用户更关注城市可达性还是环境均衡。",
+)
 MOCK_REPORT_RESPONSE_ZH_CN = """# UrbanInsight AI 深度分析报告
 
 ## 执行摘要
@@ -199,6 +265,16 @@ class MockProvider(AIProvider):
         if "Compare the selected borough with the comparison borough" in prompt:
             return MOCK_COMPARISON_RESPONSE_ZH_CN if is_chinese else MOCK_COMPARISON_RESPONSE
         return MOCK_CHAT_RESPONSE_ZH_CN if is_chinese else MOCK_CHAT_RESPONSE
+
+    def generate_chat(self, prompt: str) -> ChatAnswer:
+        self._simulate_latency()
+        answer = MOCK_CHAT_ANSWER_ZH_CN if _requests_simplified_chinese(prompt) else MOCK_CHAT_ANSWER
+        return answer.model_copy(deep=True)
+
+    def generate_comparison(self, prompt: str) -> CompareAnswer:
+        self._simulate_latency()
+        answer = MOCK_COMPARE_ANSWER_ZH_CN if _requests_simplified_chinese(prompt) else MOCK_COMPARE_ANSWER
+        return answer.model_copy(deep=True)
 
     def _simulate_latency(self) -> None:
         self._delay(random.uniform(0.3, 0.8))

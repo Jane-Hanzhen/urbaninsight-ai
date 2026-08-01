@@ -4,9 +4,9 @@ English | [简体中文](./README.zh-CN.md)
 
 ## AI-Powered Urban Decision Intelligence Platform
 
-An AI-assisted platform that turns complex borough-level data into interpretable comparisons, insights, and decision-ready reports.
+UrbanInsight AI is an AI-powered urban decision intelligence platform combining geospatial analysis, PCA-TOPSIS multi-criteria evaluation, interactive London borough exploration, and AI-generated urban insights.
 
-> **Portfolio status:** source code and the analysis workflow are public; the application has not been publicly deployed. Third-party source data is excluded pending redistribution-rights review.
+> **Portfolio status:** the source code and reproducible workflow are public. The deployment architecture targets Vercel and Railway; a verified public demo URL is not currently listed. The processed indicator CSV and credentials remain private.
 
 ## Overview
 
@@ -70,7 +70,10 @@ Export a report
 - Borough search, hover preview, selection, and camera reset
 - PCA-weighted TOPSIS scoring and ranking
 - Dimension, indicator, and contribution interpretation
+- An AI Insights toggle that applies to the next analysis and defaults off
 - Qwen and DeepSeek live AI insights, with a token-free Mock mode
+- Provider selection and backend AI runtime-status feedback
+- Indicator definitions and interpretation tooltips
 - Contextual follow-up chat
 - Borough-to-borough comparison
 - Charted A4 PDF and editable Markdown report generation
@@ -96,8 +99,10 @@ Structured responses are schema-validated, prompts separate evidence from interp
 
 ```mermaid
 flowchart LR
-    Data["Licensed data"] --> DB["SQLite"]
-    DB --> Engine["PCA-TOPSIS engine"]
+    Data["Private indicator CSV"] --> Import["Python import script"]
+    Import --> DB["SQLite"]
+    DB --> Engine["PCA-TOPSIS analysis engine"]
+    Engine --> DB
     Engine --> API["FastAPI"]
     API --> UI["React + MapLibre"]
     API --> AI["AI interpretation"]
@@ -120,9 +125,24 @@ Future captures will be stored in [`docs/screenshots/`](./docs/screenshots/). No
 
 ## Live Demo
 
-**Deployment in progress.**
+**Deployment architecture:** Vercel frontend + Railway backend.
 
-The repository currently supports local execution after appropriately licensed data is prepared. It is not a clone-and-run hosted demo because third-party source data and credentials are intentionally excluded.
+A verified public demo URL is not currently recorded in the repository. Local and hosted runs require the private indicator dataset to be injected separately; credentials remain backend-only.
+
+## Data Sources
+
+- **Map boundaries:** [`radoi90/housequest-data`](https://github.com/radoi90/housequest-data) provides the London borough boundary GeoJSON used by MapLibre for map visualization. The upstream repository publishes the file under its MIT licence; retain its copyright and licence notice when redistributing the boundary file.
+- **Urban indicators:** `data/london_indicators.csv` is a private, processed analytical dataset and is not included in GitHub. It is injected into the backend at deployment time and imported into SQLite.
+
+Third-party data is not covered by any future software licence for UrbanInsight AI. The required CSV schema and runtime paths are documented in the [Technical Guide](./docs/TECHNICAL_GUIDE.md).
+
+## Deployment
+
+- **Frontend:** Vercel, built with `pnpm run build`; `VITE_API_URL` points to the Railway API.
+- **Backend:** Railway with root directory `backend`, build command `pip install -r requirements.txt`, and start command `bash start.sh`.
+- **Required backend runtime settings:** `URBANINSIGHT_DATA_PATH`, `URBANINSIGHT_DB_PATH`, `PORT`, `AI_MODE`, and `AI_PROVIDER`. Live AI also requires the selected provider key and model settings.
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for private-data injection, CORS, Mock/Live modes, and verification steps.
 
 ## Role and Contribution
 
@@ -151,6 +171,6 @@ The analytical foundation began as a **three-person academic research project fr
 
 ## Disclaimer
 
-UrbanInsight AI is an independent portfolio-stage product and has not been publicly deployed or production-hardened. AI output is interpretive decision support and must be reviewed before use in real planning decisions. Live behavior depends on external model availability, access, quota, and user-supplied credentials.
+UrbanInsight AI is an independent portfolio-stage product and has not been production-hardened. AI output is interpretive decision support and must be reviewed before use in real planning decisions. Live behavior depends on external model availability, access, quota, and backend credentials.
 
-Compiled CSV and GeoJSON artifacts are not distributed because their field-level provenance and redistribution rights have not yet been fully verified. Users must prepare appropriately licensed data as described in the [Technical Guide](./docs/TECHNICAL_GUIDE.md). No project software licence has been selected; the bundled font retains its own SIL Open Font License.
+The private processed indicator CSV is not distributed. The London boundary GeoJSON remains third-party material attributed above and is outside the scope of any future project software licence. No project software licence has been selected; the bundled font retains its own SIL Open Font License.

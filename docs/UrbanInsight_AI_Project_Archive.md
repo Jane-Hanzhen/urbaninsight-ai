@@ -163,15 +163,14 @@ Controls include server-built context, explicit prompt boundaries, Pydantic vali
 
 The source research references data from OpenStreetMap/Overpass Turbo, Impact Observatory/Esri Living Atlas, USGS Landsat, London Datastore/ONS, and UK Data Service boundary sources. Their licences and attribution requirements differ.
 
-The compiled local CSV and GeoJSON artifacts do not yet contain sufficient field-level provenance and licensing metadata to establish redistribution rights. They are intentionally excluded from GitHub:
+The processed indicator CSV is private analytical data and is intentionally excluded from GitHub. The London borough boundary comes from the public [`radoi90/housequest-data`](https://github.com/radoi90/housequest-data) GeoJSON under its upstream MIT licence. The canonical working copy remains ignored:
 
 ```text
 data/london_indicators.csv
 data/london_boroughs.geojson
-public/data/london_boroughs.geojson
 ```
 
-The repository publishes the source code and analysis workflow, not the compiled third-party data. Local users must prepare appropriately licensed replacements according to the [Technical Guide](./TECHNICAL_GUIDE.md).
+The browser-served `public/data/london_boroughs.geojson` and its upstream licence notice are tracked for map visualization. The private indicator dataset is not published; local users must prepare it according to the [Technical Guide](./TECHNICAL_GUIDE.md).
 
 ## Technical Delivery
 
@@ -180,7 +179,7 @@ The repository publishes the source code and analysis workflow, not the compiled
 | Frontend | React, TypeScript, Vite, Tailwind CSS, MapLibre GL JS, Recharts |
 | Backend | Python, FastAPI, Pydantic |
 | Persistence | SQLite |
-| Analysis | NumPy, pandas, scikit-learn, PCA-weighted TOPSIS |
+| Analysis | NumPy with a project-owned PCA-weighted TOPSIS pipeline |
 | AI | Provider strategy layer for Qwen, DeepSeek, OpenAI-compatible, and Mock modes |
 | Reports | ReportLab PDF pipeline and Markdown export |
 | Quality | TypeScript production build and Python automated tests |
@@ -191,7 +190,7 @@ Detailed setup, configuration, APIs, data preparation, and validation commands a
 
 - Source repository: public
 - Default branch: `main`
-- Product deployment: not yet public
+- Product deployment architecture: Vercel frontend + Railway backend; verified public URL not recorded
 - Public demo data: not provided
 - Public screenshots: not yet provided
 - Project software licence: not selected
@@ -212,7 +211,7 @@ External LLM calls are mocked in automated tests. Live provider credentials are 
 ## Current Limitations
 
 - Appropriately licensed local data must be prepared before the full map and analysis workflow can run.
-- The application has not been publicly deployed or production-hardened.
+- A verified public demo URL is not recorded, and the application has not been production-hardened.
 - SQLite and the import workflow target a single-user portfolio demonstration.
 - Live AI depends on external provider availability, model access, quota, and supplied credentials.
 - AI recommendations are interpretive decision support, not planning authority.

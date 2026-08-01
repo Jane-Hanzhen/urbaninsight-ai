@@ -1,6 +1,8 @@
 import type {
   AIAnalysisInsights,
   AIAnalysisResponse,
+  AIChatAnswer,
+  AICompareAnswer,
   AIMessage,
   AIProvider,
   CompletedAnalysisMetadata
@@ -152,7 +154,7 @@ export function askAI(
   compareBoroughId?: string,
   aiProvider?: AIProvider
 ) {
-  return post<{ content: string }>("/ai/chat", {
+  return post<{ content: string; answer?: AIChatAnswer }>("/ai/chat", {
     borough_id: boroughId,
     question,
     previous_context: previousContext,
@@ -169,7 +171,7 @@ export function compareBoroughs(
   locale: SupportedLocale = "en",
   aiProvider?: AIProvider
 ) {
-  return post<{ content: string }>("/ai/compare", {
+  return post<{ content: string; answer?: AICompareAnswer }>("/ai/compare", {
     borough_id: boroughId,
     compare_borough_id: compareBoroughId,
     previous_context: previousContext,
@@ -208,4 +210,12 @@ export function generatePDFReport(
     ...metadata,
     insights
   });
+}
+
+export function exportConversationPDF(
+  boroughId: string,
+  locale: SupportedLocale,
+  messages: AIMessage[]
+) {
+  return postBlob("/conversations/pdf", { borough_id: boroughId, locale, messages });
 }

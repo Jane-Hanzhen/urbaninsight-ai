@@ -45,12 +45,10 @@ Recommended development value
 mock
 ```
 
-Mock mode ignores provider selection and provider API keys.
-
-This mode controls legacy or provider-agnostic backend calls, CLI development and
-test fixtures. It does not override an explicit web `/ai/analyze` request with
-`include_ai_insights=true`. The web switch and request provider determine that
-single analysis.
+Mock mode prevents every external LLM call, including an explicit web
+`/ai/analyze` request with `include_ai_insights=true`. The backend returns local Mock
+insights while preserving the request provider in response metadata for UI
+continuity. This is the required mode for token-free UI development and demos.
 
 ## AI_PROVIDER
 
@@ -66,10 +64,12 @@ Default in live mode
 openai
 ```
 
-This value has no effect in Mock AI mode.
+This value does not create a live client in Mock mode, but remains the default
+provider label when the request omits `ai_provider`.
 
-For explicit web AI analysis, `AI_PROVIDER` is the live default only when the request
-does not include `ai_provider`. A valid request provider has higher priority.
+In Live mode, `AI_PROVIDER` is the default when the request does not include
+`ai_provider`. The public UI may explicitly select `deepseek` or `qwen`; the backend
+strategy layer also retains OpenAI support.
 
 ---
 
@@ -434,9 +434,11 @@ Live mode may consume paid provider tokens.
 
 # Production Mode
 
-The current repository is optimized for local development.
+The documented release architecture uses Vercel for the React frontend and Railway
+for the FastAPI backend. Railway uses root directory `backend`, build command
+`pip install -r requirements.txt`, and start command `bash start.sh`.
 
-Before production deployment, specify:
+Production configuration must specify:
 
 - Process manager
 - Reverse proxy or hosting platform
@@ -450,9 +452,9 @@ Before production deployment, specify:
 - SQLite concurrency expectations
 - Logging and monitoring
 
-These production decisions are not currently implemented.
-
-Do not treat the local development commands as a production deployment specification.
+The current portfolio deployment does not add authentication, rate limiting, a
+managed database, or multi-instance SQLite writes. See `DEPLOYMENT.md` for the
+authoritative platform configuration and private-data injection workflow.
 
 ---
 
