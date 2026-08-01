@@ -264,12 +264,14 @@ In Mock mode:
 
 - selecting Qwen or DeepSeek in the UI does not create an external API client;
 - structured AI analysis uses local Mock responses;
-- follow-up chat and comparison use local Mock responses;
+- follow-up chat and comparison use dynamic local responses derived from the current borough contexts and supported question intent;
 - Markdown and PDF exports render deterministically from the completed analysis and do not call an LLM;
 - the selected Provider name remains in response metadata for UI continuity;
 - the response model is reported as `urbaninsight-mock`;
 - no Provider-unavailable warning is expected from missing keys;
 - no paid model request is made.
+
+Mock responses follow the same structured `ChatAnswer` and `CompareAnswer` contracts as Live mode. This keeps thinking, retry, comparison cards, and conversation export testable without provider tokens.
 
 ### Live mode: DeepSeek
 
@@ -348,5 +350,5 @@ Automated tests use Mock Provider calls and must not contact paid LLM APIs.
 - [ ] Add the final frontend Origin to `BACKEND_CORS_ORIGINS`.
 - [ ] Deploy the frontend and verify API requests in a browser.
 - [ ] Keep the public demo on `AI_MODE=mock` with no real keys.
-- [ ] Verify analysis, chat, comparison, PDF, and Markdown flows.
+- [ ] Verify analysis, structured chat, structured comparison, retry, analysis PDF, conversation PDF, and Markdown flows.
 - [ ] Add the verified demo URL to both portfolio READMEs.

@@ -199,6 +199,12 @@ The frontend moves to completed after the AI request settles, including the erro
 
 The Analysis Workspace then appears.
 
+When AI insights were applied, the completed panel also exposes the conversation
+workspace. Assistant messages render structured answer cards. A pending chat or
+comparison displays the non-streaming thinking state. A failed request displays a
+localized error and retry action while preserving the completed analysis and prior
+messages.
+
 ## Follow-up Conversation
 
 Available after completion.
@@ -220,6 +226,15 @@ Behavior
 - Comparison list excludes the selected borough
 - User selects one comparison borough
 - Comparison response is added to the same conversation
+- Response presents both boroughs' advantages, positioning, decision note and evidence
+
+## Conversation Export
+
+- Available after at least one conversation message exists
+- Posts the ordered visible conversation to `POST /conversations/pdf`
+- Preserves structured chat and comparison sections in the PDF
+- Does not regenerate messages or call an AI provider
+- Uses one loading state and localized error feedback
 - The Analysis Engine remains the source of all scores and rankings
 
 ---

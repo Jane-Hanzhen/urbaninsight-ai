@@ -10,7 +10,7 @@ UrbanInsight AI is an AI-powered urban decision intelligence platform combining 
 
 ## Overview
 
-UrbanInsight AI is a map-first decision intelligence platform for exploring and comparing London boroughs. It brings spatial exploration, reproducible statistical evidence, AI interpretation, contextual comparison, and report generation into one continuous workflow.
+UrbanInsight AI is a map-first, AI-powered urban decision assistant for exploring and comparing London boroughs. It brings spatial exploration, reproducible statistical evidence, AI interpretation, contextual comparison, and report generation into one continuous workflow.
 
 Users can:
 
@@ -76,6 +76,10 @@ Export a report
 - Indicator definitions and interpretation tooltips
 - Contextual follow-up chat
 - Borough-to-borough comparison
+- Schema-validated, structured chat and comparison responses
+- AI thinking feedback, recoverable request errors, and one-click retry
+- Conversation PDF export without regenerating AI content
+- Context-sensitive Mock chat and comparison responses built from stored borough evidence
 - Charted A4 PDF and editable Markdown report generation
 - English and Simplified Chinese product experience
 - Basic-analysis fallback when live AI is disabled or unavailable
@@ -91,7 +95,7 @@ The AI layer is deliberately separated from the mathematical analysis engine.
 | Comparing borough contexts | Inventing scores or ranks |
 | Producing interpretive recommendations | Replacing source evidence or domain review |
 
-Structured responses are schema-validated, prompts separate evidence from interpretation, borough context is rebuilt server-side, and provider errors are sanitized before reaching the frontend.
+Initial insights, follow-up chat, and comparisons use schema-validated response models. The frontend renders these structures as evidence cards rather than unformatted model prose. Prompts separate evidence from interpretation, borough context is rebuilt server-side, and provider errors are sanitized before reaching the frontend. A visible thinking state communicates non-streaming request progress; failed chat or comparison requests can be retried without losing the completed analysis.
 
 > **Evidence first, interpretation second.**
 

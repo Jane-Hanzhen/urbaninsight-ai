@@ -2,7 +2,7 @@
 
 ## Overview
 
-UrbanInsight AI is an AI-assisted urban potential analysis platform for London.
+UrbanInsight AI is an AI-powered urban decision assistant for London.
 
 It transforms multi-dimensional borough indicators and deterministic statistical results into interactive visual analysis and contextual explanations.
 
@@ -56,7 +56,11 @@ Support contextual follow-up questions.
 
 Compare boroughs using the same authoritative data.
 
-Generate decision-ready Markdown reports.
+Generate decision-ready PDF and Markdown analysis reports.
+
+Preserve completed AI conversations as PDF without regenerating their content.
+
+Present structured, scannable chat and comparison answers with clear waiting and recovery states.
 
 Support English and Simplified Chinese workflows.
 
@@ -77,7 +81,11 @@ The platform includes:
 - Context-aware AI analysis
 - Follow-up conversation
 - Borough comparison
+- Structured chat and comparison cards
+- AI thinking feedback and request retry
+- Conversation PDF export
 - Markdown report export
+- Charted analysis PDF export
 - English and Simplified Chinese interface
 - Mock and live AI modes
 - OpenAI, Qwen and DeepSeek support
@@ -86,7 +94,6 @@ The platform does not currently include:
 
 - User accounts
 - Saved sessions
-- PDF export
 - User-uploaded datasets
 - Multi-city datasets
 - Streaming AI responses
@@ -136,7 +143,11 @@ Ask a follow-up question or compare another borough
 
 ↓
 
-Generate a Markdown report
+Retry a failed request if necessary
+
+↓
+
+Export the conversation or generate an analysis PDF/Markdown report
 
 ---
 

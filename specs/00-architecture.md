@@ -57,6 +57,9 @@ Responsibilities
 - Charts and indicator cards
 - Follow-up conversation
 - Borough comparison controls
+- Structured chat and comparison rendering
+- Thinking, recoverable error and retry states
+- Conversation PDF download
 - Markdown report download
 - English and Simplified Chinese interface
 
@@ -73,7 +76,7 @@ Responsibilities
 - Initialize the SQLite schema at startup
 - Expose borough, indicator and analysis REST endpoints
 - Build authoritative AI context
-- Validate AI request and response schemas
+- Validate `AnalysisInsights`, `ChatAnswer` and `CompareAnswer` request/response schemas
 - Select mock or live AI mode
 - Select the configured live provider
 - Sanitize provider failures
@@ -138,7 +141,7 @@ Responsibilities
 - Identify strengths and weaknesses
 - Generate recommendations
 - Answer follow-up questions
-- Generate Markdown reports
+- Generate deterministic Markdown, analysis PDF and conversation PDF exports
 
 The provider layer uses the Strategy Pattern.
 
@@ -206,7 +209,7 @@ AI unavailable: preserve the basic analysis and return an unavailable status
 ↓
 Analysis Workspace becomes visible
 ↓
-User may ask, compare or generate a report
+User may ask, compare, retry a failed request, export the conversation or generate an analysis report
 ```
 
 ---

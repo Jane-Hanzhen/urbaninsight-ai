@@ -28,7 +28,9 @@ PCA-weighted TOPSIS belongs to the 2026 platform phase. It was not part of the o
 - Explicit CSV import and database initialization scripts
 - PCA-based objective weighting and TOPSIS ranking
 - Structured `AnalysisInsights` generation
-- Contextual follow-up chat and borough comparison
+- Structured contextual chat (`ChatAnswer`) and borough comparison (`CompareAnswer`)
+- Non-streaming thinking feedback and retryable chat/comparison errors
+- Deterministic conversation PDF export from the current message history
 - Charted A4 PDF report generation with Markdown as a secondary export
 - OpenAI, Qwen, and DeepSeek provider strategies
 - Token-free mock AI mode for UI development
@@ -107,11 +109,19 @@ Relevant upstream terms should be checked before preparing data:
 
 ## AI Decision Agent
 
-The provider layer implements a common strategy interface for structured insights and plain-text responses. The web AI switch selects basic analysis or AI Insights for the next analysis; the adjacent selector chooses DeepSeek or Qwen. `AI_PROVIDER` supplies the default when a request omits the provider. `AI_MODE=mock` prevents all external LLM calls, including explicit web AI requests; `AI_MODE=live` uses the selected configured provider.
+The provider layer implements a common strategy interface for structured analysis, chat, comparison, and plain-text legacy/report responses. The web AI switch selects basic analysis or AI Insights for the next analysis; the adjacent selector chooses DeepSeek or Qwen. `AI_PROVIDER` supplies the default when a request omits the provider. `AI_MODE=mock` prevents all external LLM calls, including explicit web AI requests; `AI_MODE=live` uses the selected configured provider.
 
-For structured analysis, the provider is instructed to return JSON, the response is parsed defensively, and Pydantic validates it as `AnalysisInsights`. Chat, comparison, and report endpoints return plain text through unchanged API schemas.
+Follow-up chat returns `ChatAnswer` with a response type, headline, summary, up to four key points, and optional bottom-line and limitation fields. Borough comparison returns `CompareAnswer` with both boroughs' advantages and positioning, a decision note, and up to three evidence rows. The frontend retains `content` for compatibility but renders the structured `answer` object when present.
+
+Mock chat and comparison are dynamic rather than one fixed paragraph. The Mock builder reads the same server-built borough context, recognizes supported question intents such as strengths, weaknesses, ranking, and development direction, and creates evidence-bounded structured responses without an external call.
+
+During a non-streaming chat or comparison request, the AI Panel displays a thinking state. If the request fails, the pending request is retained and the panel exposes a retry action. Retrying repeats that failed chat or comparison request without restarting the borough analysis.
+
+For structured analysis, chat, and comparison, the provider is instructed to return JSON, the response is parsed defensively, and Pydantic validates it as `AnalysisInsights`, `ChatAnswer`, or `CompareAnswer`. The response envelopes retain plain `content` summaries where required for compatibility.
 
 PDF export is a separate deterministic ReportLab pipeline. It combines the completed analysis metadata and structured insights already held by the frontend with authoritative indicators and persisted PCA/TOPSIS results reloaded by the backend. It does not make another LLM call. English reports use the standard PDF font stack; Simplified Chinese reports embed Noto Sans CJK SC, distributed under the font's included SIL Open Font License.
+
+Conversation export posts the current ordered message history and any structured answer payloads to `POST /conversations/pdf`. ReportLab renders a bilingual conversation PDF and does not call the provider or recalculate analysis.
 
 Markdown export follows the same completed-result principle. The frontend sends
 completed metadata, structured insights and the current analysis-result snapshot to
@@ -267,6 +277,7 @@ AI endpoints:
 - `POST /ai/compare`
 - `POST /ai/report`
 - `POST /reports/pdf`
+- `POST /conversations/pdf`
 
 Interactive API documentation is available at `http://127.0.0.1:8000/docs` while the backend is running.
 

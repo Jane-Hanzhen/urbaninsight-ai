@@ -258,11 +258,13 @@ Returns structured `AnalysisInsights`.
 
 ## POST /ai/chat
 
-Returns a text response.
+Returns `ChatResponse` containing a compatibility `content` summary and a
+schema-validated structured `ChatAnswer`.
 
 ## POST /ai/compare
 
-Returns a comparison text response.
+Returns `CompareResponse` containing a compatibility `content` summary and a
+schema-validated structured `CompareAnswer`.
 
 ## POST /ai/report
 
@@ -292,6 +294,21 @@ disclaimer, headers and page numbers. Simplified Chinese output embeds the bundl
 Noto Sans CJK SC font under its own SIL Open Font License.
 
 The route performs no statistical recalculation and no LLM request.
+
+## POST /conversations/pdf
+
+Returns the current conversation as `application/pdf`.
+
+Request fields:
+
+- `borough_id`
+- `locale`
+- `messages` containing one to 100 ordered user/assistant entries
+- optional structured `ChatAnswer` or `CompareAnswer` on assistant entries
+
+The route reloads borough context for report identity, preserves message order, and
+renders structured response sections through ReportLab. It does not call an AI
+provider or rerun the Analysis Engine.
 
 AI endpoint details are normative in `07-ai.md`.
 

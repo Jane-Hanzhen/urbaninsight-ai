@@ -39,8 +39,9 @@ I independently designed and implemented:
 - PCA-weighted TOPSIS analysis engine;
 - React and MapLibre frontend;
 - provider-agnostic AI decision agent;
-- contextual chat and borough comparison;
-- deterministic PDF and editable Markdown reporting.
+- structured contextual chat and borough comparison;
+- thinking feedback, request retry, and conversation preservation;
+- deterministic analysis PDF, conversation PDF, and editable Markdown reporting.
 
 PCA-weighted TOPSIS belongs to this 2026 productization phase. TOPSIS was not part of the original group research methodology.
 
@@ -119,9 +120,11 @@ Implemented capabilities include:
 - English and Simplified Chinese localization;
 - persisted per-analysis AI preference with a basic-analysis fallback;
 - dimension, indicator, PCA contribution, TOPSIS score, and ranking views;
-- structured `AnalysisInsights` responses;
-- contextual chat and borough comparison;
+- structured `AnalysisInsights`, `ChatAnswer`, and `CompareAnswer` responses;
+- contextual chat and borough comparison with thinking and retry states;
+- dynamic, evidence-aware Mock chat and comparison;
 - Qwen, DeepSeek, OpenAI-compatible, and Mock provider strategies;
+- deterministic conversation PDF export;
 - deterministic charted A4 PDF generation;
 - editable Markdown report export.
 

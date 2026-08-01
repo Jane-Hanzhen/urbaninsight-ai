@@ -50,6 +50,11 @@ Mock mode prevents every external LLM call, including an explicit web
 insights while preserving the request provider in response metadata for UI
 continuity. This is the required mode for token-free UI development and demos.
 
+Follow-up chat and comparison are dynamically composed from the current database
+context and supported question intent while preserving the same structured schemas
+as Live mode. Mock mode is therefore suitable for testing thinking, retry,
+comparison-card, and conversation-export UI without provider credentials.
+
 ## AI_PROVIDER
 
 Allowed live values

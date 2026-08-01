@@ -145,6 +145,10 @@ Delivered
 - Structured `AnalysisInsights`
 - Follow-up chat
 - Borough comparison
+- Structured `ChatAnswer` and `CompareAnswer` contracts
+- AI Panel thinking state and failed-request retry
+- Dynamic context-aware Mock chat and comparison responses
+- Conversation PDF export
 - Markdown report generation
 - AI status endpoint
 - English and Simplified Chinese AI output
@@ -168,6 +172,7 @@ Implemented after Milestone 6
 - Compact map guidance overlay
 - Initial experience polish
 - Consistent idle and hover AI Panel structure
+- Improved structured conversation-card layout
 
 These enhancements are part of the current Version 1 baseline.
 
