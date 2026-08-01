@@ -45,7 +45,7 @@ from .ai.schemas import (
     TextResponse,
 )
 from .ai.report_builder import normalize_report_title
-from .reports import build_pdf_report
+from .reports import build_markdown_report, build_pdf_report
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -253,6 +253,13 @@ def ai_compare(request: CompareRequest) -> TextResponse:
 @app.post("/ai/report", response_model=TextResponse)
 def ai_report(request: ReportRequest) -> TextResponse:
     context = _context_or_404(request.borough_id)
+    if (
+        request.insights is not None
+        and request.analysis_result is not None
+        and request.ai_insights_applied is not None
+    ):
+        return TextResponse(content=build_markdown_report(context, request))
+
     prompt = report_prompt(context, request.previous_context, request.locale)
     if not request.include_ai_insights:
         return TextResponse(

@@ -178,17 +178,19 @@ export function compareBoroughs(
 
 export function generateAIReport(
   boroughId: string,
-  includeAIInsights: boolean,
-  aiProvider: AIProvider | undefined,
-  previousContext: AIMessage[],
+  metadata: CompletedAnalysisMetadata,
+  insights: AIAnalysisInsights,
+  analysisResult: ApiAnalysisResult,
   locale: SupportedLocale = "en"
 ) {
   return post<{ content: string }>("/ai/report", {
     borough_id: boroughId,
-    include_ai_insights: includeAIInsights,
-    ai_provider: includeAIInsights ? aiProvider : undefined,
-    previous_context: previousContext,
-    locale
+    include_ai_insights: metadata.ai_insights_applied,
+    previous_context: [],
+    locale,
+    ...metadata,
+    insights,
+    analysis_result: analysisResult
   });
 }
 

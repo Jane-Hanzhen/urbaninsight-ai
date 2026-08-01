@@ -60,8 +60,25 @@ class CompareRequest(AnalyzeRequest):
     compare_borough_id: str
 
 
+class AnalysisResultSnapshot(BaseModel):
+    borough_id: str
+    overall_score: float
+    regional_rank: int
+    economic_score: float
+    social_score: float
+    ecological_score: float
+    contribution_json: dict[str, object] = Field(default_factory=dict)
+    updated_at: str | None = None
+
+
 class ReportRequest(AnalyzeRequest):
-    pass
+    analysis_mode: Literal["basic", "ai"] | None = None
+    ai_insights_requested: bool | None = None
+    ai_insights_applied: bool | None = None
+    ai_model: str | None = None
+    ai_error: Literal["unavailable"] | None = None
+    insights: AnalysisInsights | None = None
+    analysis_result: AnalysisResultSnapshot | None = None
 
 
 class TextResponse(BaseModel):

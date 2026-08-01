@@ -340,6 +340,8 @@ Primary action:
 Secondary action:
 
 - Export Markdown from `POST /ai/report`
+- Reuse the completed analysis metadata, structured insights and analysis result
+- Do not call an AI provider again during export
 
 Markdown filenames use:
 

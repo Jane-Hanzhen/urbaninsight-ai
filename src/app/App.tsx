@@ -325,16 +325,16 @@ export function App() {
   }, [boroughs, completedMetadata, messages, selectedBoroughRecord, t]);
 
   const handleGenerateMarkdown = useCallback(async () => {
-    if (!selectedBoroughRecord) return;
+    if (!selectedBoroughRecord || !completedMetadata || !aiInsights || !analysisResult) return;
     setReportFormat("markdown");
     setReportError(null);
     try {
       const locale = currentLocale();
       const response = await generateAIReport(
         selectedBoroughRecord.id,
-        completedMetadata?.ai_insights_applied ?? false,
-        completedAIProvider(completedMetadata),
-        messages,
+        completedMetadata,
+        aiInsights,
+        analysisResult,
         locale
       );
       downloadMarkdown(response.content, selectedBoroughRecord.name, locale);
@@ -343,7 +343,7 @@ export function App() {
     } finally {
       setReportFormat(null);
     }
-  }, [completedMetadata, messages, selectedBoroughRecord, t]);
+  }, [aiInsights, analysisResult, completedMetadata, selectedBoroughRecord, t]);
 
   const handleGeneratePDF = useCallback(async () => {
     if (!selectedBoroughRecord || !completedMetadata || !aiInsights) return;

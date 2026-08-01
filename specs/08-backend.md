@@ -268,6 +268,12 @@ Returns a comparison text response.
 
 Returns Markdown as text content.
 
+The active frontend request includes completed analysis metadata, structured
+`AnalysisInsights` and the current `analysis_result` snapshot. The backend reloads
+the authoritative SQLite context and renders Markdown locally. This path performs
+no LLM request and no statistical recalculation. Requests without the snapshot
+remain supported by the legacy provider path for backwards compatibility.
+
 ## POST /reports/pdf
 
 Returns a generated A4 PDF as `application/pdf`.

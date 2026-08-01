@@ -113,6 +113,12 @@ For structured analysis, the provider is instructed to return JSON, the response
 
 PDF export is a separate deterministic ReportLab pipeline. It combines the completed analysis metadata and structured insights already held by the frontend with authoritative indicators and persisted PCA/TOPSIS results reloaded by the backend. It does not make another LLM call. English reports use the standard PDF font stack; Simplified Chinese reports embed Noto Sans CJK SC, distributed under the font's included SIL Open Font License.
 
+Markdown export follows the same completed-result principle. The frontend sends
+completed metadata, structured insights and the current analysis-result snapshot to
+`POST /ai/report`; the backend reloads authoritative SQLite context and renders the
+Markdown locally without a second provider request. The legacy request shape remains
+available for backwards compatibility, but the current UI does not use it.
+
 The principal hallucination controls are:
 
 - statistical results are loaded from SQLite, not invented by the model;
