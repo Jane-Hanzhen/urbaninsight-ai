@@ -91,7 +91,7 @@ export function AppShell({
       ) : null}
 
       <main className="mx-auto max-w-[1600px] space-y-xl px-xl py-xl">
-        <section className="grid min-h-[640px] grid-cols-1 gap-lg lg:grid-cols-[minmax(0,7fr)_minmax(340px,3fr)]">
+        <section className="grid min-h-[640px] grid-cols-1 gap-lg lg:grid-cols-[minmax(0,13fr)_minmax(340px,7fr)]">
           {map}
           {aiPanel}
         </section>

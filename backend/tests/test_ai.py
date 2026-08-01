@@ -420,9 +420,18 @@ class ProviderGenerationTests(unittest.TestCase):
         self.assertEqual(analyze.json()["analysis_mode"], "basic")
         self.assertFalse(analyze.json()["ai_insights_applied"])
         self.assertIn("executive_summary", analyze.json()["insights"])
-        self.assertEqual(chat.json()["content"], MOCK_CHAT_RESPONSE)
+        self.assertIn("Camden", chat.json()["answer"]["headline"])
+        self.assertNotEqual(chat.json()["content"], MOCK_CHAT_RESPONSE)
         self.assertEqual(chat.json()["answer"]["response_type"], "insight")
-        self.assertEqual(comparison.json()["content"], MOCK_COMPARISON_RESPONSE)
+        self.assertEqual(
+            comparison.json()["answer"]["primary_positioning"]["borough_name"],
+            "Camden",
+        )
+        self.assertEqual(
+            comparison.json()["answer"]["comparison_positioning"]["borough_name"],
+            "Westminster",
+        )
+        self.assertNotEqual(comparison.json()["content"], MOCK_COMPARISON_RESPONSE)
         self.assertEqual(comparison.json()["answer"]["response_type"], "comparison")
         self.assertTrue(
             report.json()["content"].startswith(
@@ -455,15 +464,137 @@ class ProviderGenerationTests(unittest.TestCase):
             analyze.json()["insights"]["executive_summary"],
             MOCK_INSIGHTS_ZH_CN.executive_summary,
         )
-        self.assertEqual(chat.json()["content"], MOCK_CHAT_RESPONSE_ZH_CN)
+        self.assertIn("Camden", chat.json()["answer"]["headline"])
+        self.assertNotEqual(chat.json()["content"], MOCK_CHAT_RESPONSE_ZH_CN)
         self.assertEqual(chat.json()["answer"]["response_type"], "insight")
-        self.assertEqual(comparison.json()["content"], MOCK_COMPARISON_RESPONSE_ZH_CN)
+        self.assertIn("在当前评价体系下", comparison.json()["content"])
+        self.assertNotEqual(
+            comparison.json()["content"], MOCK_COMPARISON_RESPONSE_ZH_CN
+        )
         self.assertEqual(comparison.json()["answer"]["response_type"], "comparison")
         self.assertTrue(
             report.json()["content"].startswith(
                 "# UrbanInsight 基础分析报告"
             )
         )
+
+    def test_dynamic_mock_chat_differs_between_boroughs(self) -> None:
+        with patch.dict(os.environ, {"AI_MODE": "mock"}, clear=False):
+            with patch("app.ai.providers.mock_provider.time.sleep"):
+                client = TestClient(app)
+                city = client.post(
+                    "/ai/chat",
+                    json={
+                        "borough_id": "E09000001",
+                        "locale": "zh-CN",
+                        "question": "这里哪方面表现特别好？",
+                    },
+                ).json()["answer"]
+                camden = client.post(
+                    "/ai/chat",
+                    json={
+                        "borough_id": "E09000007",
+                        "locale": "zh-CN",
+                        "question": "这里哪方面表现特别好？",
+                    },
+                ).json()["answer"]
+
+        self.assertIn("City of London", city["headline"])
+        self.assertIn("Camden", camden["headline"])
+        self.assertNotEqual(
+            [point["title"] for point in city["key_points"]],
+            [point["title"] for point in camden["key_points"]],
+        )
+        self.assertIn("商业密度", [point["title"] for point in city["key_points"]])
+        self.assertIn("文化设施可达性", [point["title"] for point in camden["key_points"]])
+
+    def test_dynamic_mock_supports_weakness_ranking_and_development_questions(self) -> None:
+        with patch.dict(os.environ, {"AI_MODE": "mock"}, clear=False):
+            with patch("app.ai.providers.mock_provider.time.sleep"):
+                client = TestClient(app)
+                weakness = client.post(
+                    "/ai/chat",
+                    json={
+                        "borough_id": "E09000001",
+                        "locale": "zh-CN",
+                        "question": "最大的短板是什么？",
+                    },
+                ).json()["answer"]
+                ranking = client.post(
+                    "/ai/chat",
+                    json={
+                        "borough_id": "E09000001",
+                        "locale": "zh-CN",
+                        "question": "为什么排名第一？",
+                    },
+                ).json()["answer"]
+                development = client.post(
+                    "/ai/chat",
+                    json={
+                        "borough_id": "E09000001",
+                        "locale": "zh-CN",
+                        "question": "未来适合发展什么？",
+                    },
+                ).json()["answer"]
+
+        self.assertIn("生态环境", weakness["headline"])
+        self.assertIn("排名第 1", ranking["summary"])
+        self.assertIn("不会重新计算 PCA-TOPSIS", ranking["bottom_line"])
+        self.assertEqual(development["response_type"], "recommendation")
+        self.assertIn("基础条件", development["summary"])
+        self.assertIn("不是产业预测", development["summary"])
+
+    def test_dynamic_mock_compare_uses_both_contexts_and_limits_evidence(self) -> None:
+        with patch.dict(os.environ, {"AI_MODE": "mock"}, clear=False):
+            with patch("app.ai.providers.mock_provider.time.sleep"):
+                answer = TestClient(app).post(
+                    "/ai/compare",
+                    json={
+                        "borough_id": "E09000001",
+                        "compare_borough_id": "E09000007",
+                        "locale": "zh-CN",
+                    },
+                ).json()["answer"]
+
+        self.assertIn("在当前评价体系下", answer["summary"])
+        self.assertEqual(answer["primary_positioning"]["borough_name"], "City of London")
+        self.assertEqual(answer["comparison_positioning"]["borough_name"], "Camden")
+        self.assertIn("经济活力", [item["dimension"] for item in answer["primary_advantages"]])
+        self.assertIn("生态环境", [item["dimension"] for item in answer["comparison_advantages"]])
+        self.assertLessEqual(len(answer["evidence"]), 3)
+        self.assertEqual(answer["evidence"][0]["primary_value"], "80.0")
+        self.assertEqual(answer["evidence"][0]["comparison_value"], "33.9")
+
+    def test_dynamic_mock_api_uses_database_context_without_live_provider(self) -> None:
+        with patch.dict(os.environ, {"AI_MODE": "mock"}, clear=False):
+            with patch("app.ai.providers.mock_provider.time.sleep"):
+                with patch("app.main.generate_live_chat") as live_chat:
+                    with patch("app.main.generate_live_comparison") as live_compare:
+                        with patch(
+                            "app.ai.providers.base.OpenAI",
+                            side_effect=AssertionError("external SDK used"),
+                        ):
+                            client = TestClient(app)
+                            chat = client.post(
+                                "/ai/chat",
+                                json={
+                                    "borough_id": "E09000007",
+                                    "question": "What is the biggest strength?",
+                                },
+                            )
+                            comparison = client.post(
+                                "/ai/compare",
+                                json={
+                                    "borough_id": "E09000001",
+                                    "compare_borough_id": "E09000007",
+                                },
+                            )
+
+        self.assertEqual(chat.status_code, 200)
+        self.assertEqual(comparison.status_code, 200)
+        self.assertIn("Camden", chat.json()["answer"]["headline"])
+        live_chat.assert_not_called()
+        live_compare.assert_not_called()
 
     def test_disabled_ai_returns_basic_analysis_without_provider_call(self) -> None:
         with patch("app.main.generate_live_insights") as generate_live_insights:
@@ -622,7 +753,8 @@ class ProviderGenerationTests(unittest.TestCase):
                     )
 
         generate_live_text.assert_not_called()
-        self.assertEqual(chat.json()["content"], MOCK_CHAT_RESPONSE)
+        self.assertIn("Camden", chat.json()["answer"]["headline"])
+        self.assertNotEqual(chat.json()["content"], MOCK_CHAT_RESPONSE)
         self.assertEqual(chat.json()["answer"]["response_type"], "insight")
         self.assertTrue(
             report.json()["content"].startswith(

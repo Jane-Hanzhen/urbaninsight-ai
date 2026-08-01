@@ -5,6 +5,10 @@ import time
 from collections.abc import Callable
 
 from ..schemas import AnalysisInsights, ChatAnswer, CompareAnswer
+from ..mock_response_builder import (
+    build_mock_chat_response,
+    build_mock_compare_response,
+)
 from .base import AIProvider
 
 
@@ -268,11 +272,17 @@ class MockProvider(AIProvider):
 
     def generate_chat(self, prompt: str) -> ChatAnswer:
         self._simulate_latency()
+        dynamic_answer = build_mock_chat_response(prompt)
+        if dynamic_answer is not None:
+            return dynamic_answer
         answer = MOCK_CHAT_ANSWER_ZH_CN if _requests_simplified_chinese(prompt) else MOCK_CHAT_ANSWER
         return answer.model_copy(deep=True)
 
     def generate_comparison(self, prompt: str) -> CompareAnswer:
         self._simulate_latency()
+        dynamic_answer = build_mock_compare_response(prompt)
+        if dynamic_answer is not None:
+            return dynamic_answer
         answer = MOCK_COMPARE_ANSWER_ZH_CN if _requests_simplified_chinese(prompt) else MOCK_COMPARE_ANSWER
         return answer.model_copy(deep=True)
 
