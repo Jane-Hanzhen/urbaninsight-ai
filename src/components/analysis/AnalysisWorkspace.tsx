@@ -9,12 +9,16 @@ import {
   GraduationCap,
   HeartPulse,
   House,
+  Info,
   Leaf,
   Lightbulb,
   MapPinned,
   Sparkles,
-  Users
+  Users,
+  X
 } from "lucide-react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Bar,
   BarChart,
@@ -409,9 +413,15 @@ function IndicatorCard({ indicator }: { indicator: KeyIndicator }) {
   }[indicator.status];
 
   return (
-    <Card className="flex min-w-0 items-start justify-between gap-md">
+    <Card
+      className="relative flex min-w-0 items-start justify-between gap-md"
+      data-indicator-card={indicator.id}
+    >
       <div className="min-w-0">
-        <p className="text-caption text-text-secondary">{indicator.label}</p>
+        <div className="flex items-center gap-xs">
+          <p className="min-w-0 text-caption text-text-secondary">{indicator.label}</p>
+          <IndicatorInfoTooltip indicator={indicator} />
+        </div>
         <p className="mt-xs text-heading">{indicator.value}</p>
         <p className="mt-sm text-caption text-text-secondary">{indicator.context}</p>
       </div>
@@ -419,6 +429,252 @@ function IndicatorCard({ indicator }: { indicator: KeyIndicator }) {
         <Icon size={18} aria-hidden="true" />
       </div>
     </Card>
+  );
+}
+
+function IndicatorInfoTooltip({ indicator }: { indicator: KeyIndicator }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    placement: "right" | "left" | "contained" | "above" | "below";
+  } | null>(null);
+  const tooltipId = useId();
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const closeTimerRef = useRef<number | null>(null);
+
+  const cancelScheduledClose = useCallback(() => {
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleHoverClose = useCallback(() => {
+    cancelScheduledClose();
+    closeTimerRef.current = window.setTimeout(() => setOpen(false), 120);
+  }, [cancelScheduledClose]);
+
+  const updatePosition = useCallback(() => {
+    const trigger = buttonRef.current;
+    if (!trigger) return;
+
+    const triggerRect = trigger.getBoundingClientRect();
+    const cardRect = trigger.closest("[data-indicator-card]")?.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const mobile = viewportWidth < 768;
+    const edge = mobile ? 16 : 12;
+    const gap = 10;
+    const width = Math.min(mobile ? 300 : 288, viewportWidth - edge * 2);
+    const panelHeight = panelRef.current?.offsetHeight ?? 176;
+    const clamp = (value: number, minimum: number, maximum: number) =>
+      Math.min(Math.max(value, minimum), Math.max(minimum, maximum));
+
+    if (mobile) {
+      const below = triggerRect.bottom + gap;
+      const above = triggerRect.top - panelHeight - gap;
+      const top = below + panelHeight <= viewportHeight - edge || above < edge
+        ? below
+        : above;
+      setPosition({
+        top: clamp(top, edge, viewportHeight - panelHeight - edge),
+        left: clamp(
+          triggerRect.left + triggerRect.width / 2 - width / 2,
+          edge,
+          viewportWidth - width - edge
+        ),
+        width,
+        placement: top === below ? "below" : "above"
+      });
+      return;
+    }
+
+    const cardLeft = cardRect?.left ?? edge;
+    const cardRight = cardRect?.right ?? viewportWidth - edge;
+    const rightCandidate = triggerRect.right + gap;
+    const leftCandidate = triggerRect.left - width - gap;
+    const activeCard = trigger.closest("[data-indicator-card]");
+    const otherCards = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-indicator-card]")
+    )
+      .filter((card) => card !== activeCard)
+      .map((card) => card.getBoundingClientRect());
+    const overlapsCurrentRow = (left: number) =>
+      otherCards.some(
+        (rect) =>
+          left < rect.right &&
+          left + width > rect.left &&
+          triggerRect.top < rect.bottom &&
+          triggerRect.bottom > rect.top
+      );
+    const fitsRight =
+      rightCandidate + width <= viewportWidth - edge &&
+      !overlapsCurrentRow(rightCandidate);
+    const fitsLeft = leftCandidate >= edge && !overlapsCurrentRow(leftCandidate);
+    const placement = fitsRight ? "right" : fitsLeft ? "left" : "contained";
+    const left = placement === "right"
+      ? rightCandidate
+      : placement === "left"
+        ? leftCandidate
+        : clamp(cardRight - width - edge, cardLeft + edge, viewportWidth - width - edge);
+
+    const horizontalBlockers = otherCards.filter(
+      (rect) => left < rect.right && left + width > rect.left
+    );
+    const clearTop = horizontalBlockers.reduce(
+      (value, rect) => (rect.bottom <= triggerRect.top ? Math.max(value, rect.bottom + gap) : value),
+      edge
+    );
+    const clearBottom = horizontalBlockers.reduce(
+      (value, rect) => (rect.top >= triggerRect.bottom ? Math.min(value, rect.top - gap) : value),
+      viewportHeight - edge
+    );
+    const availableTop = clearBottom - panelHeight;
+    const alignedTop = availableTop >= clearTop
+      ? clamp(triggerRect.top - 10, clearTop, availableTop)
+      : clamp(triggerRect.top - 10, edge, viewportHeight - panelHeight - edge);
+
+    setPosition({
+      top: alignedTop,
+      left,
+      width,
+      placement
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (
+        !rootRef.current?.contains(target) &&
+        !panelRef.current?.contains(target)
+      ) {
+        setOpen(false);
+      }
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePointer);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setPosition(null);
+      return;
+    }
+    updatePosition();
+    const frame = window.requestAnimationFrame(updatePosition);
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [open, updatePosition]);
+
+  useEffect(() => () => cancelScheduledClose(), [cancelScheduledClose]);
+
+  return (
+    <div
+      ref={rootRef}
+      className="shrink-0"
+      onPointerEnter={(event) => {
+        if (event.pointerType !== "touch") {
+          cancelScheduledClose();
+          setOpen(true);
+        }
+      }}
+      onPointerLeave={(event) => {
+        if (event.pointerType !== "touch") scheduleHoverClose();
+      }}
+      onBlur={(event) => {
+        const next = event.relatedTarget as Node | null;
+        if (
+          next &&
+          !event.currentTarget.contains(next) &&
+          !panelRef.current?.contains(next)
+        ) {
+          setOpen(false);
+        }
+      }}
+    >
+      <button
+        ref={buttonRef}
+        type="button"
+        className="flex h-7 w-7 items-center justify-center rounded-full text-text-secondary/80 transition-colors duration-fast hover:bg-blue-50 hover:text-primary focus-visible:bg-blue-50 focus-visible:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+        aria-label={t("analysis.indicatorInfo", { indicator: indicator.label })}
+        aria-expanded={open}
+        aria-controls={tooltipId}
+        data-testid={`indicator-info-${indicator.id}`}
+        onClick={() => setOpen(true)}
+        onFocus={() => setOpen(true)}
+      >
+        <Info size={15} strokeWidth={1.75} aria-hidden="true" />
+      </button>
+      {open && position
+        ? createPortal(
+            <div
+              ref={panelRef}
+              id={tooltipId}
+              role="tooltip"
+              data-testid={`indicator-tooltip-${indicator.id}`}
+              data-placement={position.placement}
+              className="fixed z-50 rounded-md border border-border bg-surface px-sm py-[10px] shadow-card"
+              style={{
+                top: position.top,
+                left: position.left,
+                width: position.width
+              }}
+              onPointerEnter={cancelScheduledClose}
+              onPointerLeave={(event) => {
+                if (event.pointerType !== "touch") scheduleHoverClose();
+              }}
+            >
+              <button
+                type="button"
+                className="absolute right-xs top-xs flex h-7 w-7 items-center justify-center rounded-full text-text-secondary transition-colors duration-fast hover:bg-background hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary md:hidden"
+                aria-label={t("analysis.closeIndicatorInfo")}
+                onClick={() => setOpen(false)}
+              >
+                <X size={15} aria-hidden="true" />
+              </button>
+              <p className="pr-xl text-caption font-semibold leading-snug text-text-primary">
+                {indicator.tooltip.title}
+              </p>
+              <div className="mt-xs">
+                <p className="text-[11px] font-medium text-text-secondary">
+                  {t("analysis.tooltipMeasures")}
+                </p>
+                <p className="mt-[2px] text-caption leading-snug text-text-secondary">
+                  {indicator.tooltip.description}
+                </p>
+              </div>
+              <div className="mt-xs border-t border-border pt-xs">
+                <p className="text-[11px] font-medium text-text-secondary">
+                  {t("analysis.tooltipInterpretation")}
+                </p>
+                <p className="mt-[2px] text-caption leading-snug text-text-secondary">
+                  {indicator.tooltip.interpretation}
+                </p>
+              </div>
+            </div>,
+            document.body
+          )
+        : null}
+    </div>
   );
 }
 

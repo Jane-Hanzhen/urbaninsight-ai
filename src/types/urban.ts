@@ -24,12 +24,19 @@ export type DimensionContribution = {
 
 export type IndicatorDimension = "Economic" | "Social" | "Ecological";
 
+export type IndicatorTooltipContent = {
+  title: string;
+  description: string;
+  interpretation: string;
+};
+
 export type KeyIndicator = {
   id: string;
   dimension: IndicatorDimension;
   label: string;
   value: string;
   context: string;
+  tooltip: IndicatorTooltipContent;
   status: "positive" | "neutral" | "attention";
 };
 

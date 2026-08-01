@@ -497,6 +497,7 @@ function toIndicatorCards(t: TFunction, indicators: ApiIndicators) {
       label: t("indicators.gdhi_per_head_gbp", { defaultValue: "GDHI per head" }),
       value: formatCurrency(indicators.gdhi_per_head_gbp),
       context: t("indicatorContext.gdhi"),
+      tooltip: indicatorTooltip(t, "gdhi_per_head_gbp"),
       status: "neutral" as const
     },
     {
@@ -505,6 +506,7 @@ function toIndicatorCards(t: TFunction, indicators: ApiIndicators) {
       label: t("indicators.business_density_per_1000", { defaultValue: "Business density" }),
       value: `${formatNumber(indicators.business_density_per_1000, 1)} / 1,000`,
       context: t("indicatorContext.business"),
+      tooltip: indicatorTooltip(t, "business_density_per_1000"),
       status: "neutral" as const
     },
     {
@@ -513,6 +515,7 @@ function toIndicatorCards(t: TFunction, indicators: ApiIndicators) {
       label: t("indicators.house_price_earnings_ratio_reverse", { defaultValue: "Housing affordability" }),
       value: formatNumber(indicators.house_price_earnings_ratio_reverse, 2, 2),
       context: t("indicatorContext.reversed"),
+      tooltip: indicatorTooltip(t, "house_price_earnings_ratio_reverse"),
       status: "neutral" as const
     },
     {
@@ -521,6 +524,7 @@ function toIndicatorCards(t: TFunction, indicators: ApiIndicators) {
       label: t("indicators.police_mean", { defaultValue: "Police provision" }),
       value: formatNumber(indicators.police_mean, 1, 1),
       context: t("indicatorContext.police"),
+      tooltip: indicatorTooltip(t, "police_mean"),
       status: "neutral" as const
     },
     {
@@ -529,6 +533,7 @@ function toIndicatorCards(t: TFunction, indicators: ApiIndicators) {
       label: t("indicators.bus_mean", { defaultValue: "Bus accessibility" }),
       value: formatNumber(indicators.bus_mean, 1, 1),
       context: t("indicatorContext.bus"),
+      tooltip: indicatorTooltip(t, "bus_mean"),
       status: "neutral" as const
     },
     {
@@ -537,6 +542,7 @@ function toIndicatorCards(t: TFunction, indicators: ApiIndicators) {
       label: t("indicators.medical_mean", { defaultValue: "Medical resources" }),
       value: formatNumber(indicators.medical_mean, 1, 1),
       context: t("indicatorContext.medical"),
+      tooltip: indicatorTooltip(t, "medical_mean"),
       status: "neutral" as const
     },
     {
@@ -545,6 +551,7 @@ function toIndicatorCards(t: TFunction, indicators: ApiIndicators) {
       label: t("indicators.cultural_mean", { defaultValue: "Cultural amenities" }),
       value: formatNumber(indicators.cultural_mean, 1, 1),
       context: t("indicatorContext.cultural"),
+      tooltip: indicatorTooltip(t, "cultural_mean"),
       status: "neutral" as const
     },
     {
@@ -553,6 +560,7 @@ function toIndicatorCards(t: TFunction, indicators: ApiIndicators) {
       label: t("indicators.convenient_service_mean", { defaultValue: "Convenient services" }),
       value: formatNumber(indicators.convenient_service_mean, 1, 1),
       context: t("indicatorContext.convenient"),
+      tooltip: indicatorTooltip(t, "convenient_service_mean"),
       status: "neutral" as const
     },
     {
@@ -561,6 +569,7 @@ function toIndicatorCards(t: TFunction, indicators: ApiIndicators) {
       label: t("indicators.ndvi_mean", { defaultValue: "NDVI" }),
       value: formatNumber(indicators.ndvi_mean, 3, 3),
       context: t("indicatorContext.ndvi"),
+      tooltip: indicatorTooltip(t, "ndvi_mean"),
       status: "neutral" as const
     },
     {
@@ -569,6 +578,7 @@ function toIndicatorCards(t: TFunction, indicators: ApiIndicators) {
       label: t("indicators.wet_mean", { defaultValue: "Wetness index" }),
       value: formatNumber(indicators.wet_mean, 3, 3),
       context: t("indicatorContext.wet"),
+      tooltip: indicatorTooltip(t, "wet_mean"),
       status: "neutral" as const
     },
     {
@@ -577,6 +587,7 @@ function toIndicatorCards(t: TFunction, indicators: ApiIndicators) {
       label: t("indicators.landscape_index", { defaultValue: "Landscape index" }),
       value: formatNumber(indicators.landscape_index, 3, 3),
       context: t("indicatorContext.landscape"),
+      tooltip: indicatorTooltip(t, "landscape_index"),
       status: "neutral" as const
     },
     {
@@ -585,9 +596,18 @@ function toIndicatorCards(t: TFunction, indicators: ApiIndicators) {
       label: t("indicators.household_waste_recycling_rate_pct", { defaultValue: "Waste recycling" }),
       value: `${formatNumber(indicators.household_waste_recycling_rate_pct, 1, 1)}%`,
       context: t("indicatorContext.recycling"),
+      tooltip: indicatorTooltip(t, "household_waste_recycling_rate_pct"),
       status: "neutral" as const
     }
   ];
+}
+
+function indicatorTooltip(t: TFunction, key: keyof ApiIndicators) {
+  return {
+    title: t(`indicatorTooltips.${key}.title`),
+    description: t(`indicatorTooltips.${key}.description`),
+    interpretation: t(`indicatorTooltips.${key}.interpretation`)
+  };
 }
 
 function formatNumber(

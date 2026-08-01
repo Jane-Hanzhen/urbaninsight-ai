@@ -100,6 +100,10 @@
         "indicators": "Indicators",
         "indicatorTitle": "Signals behind the score",
         "indicatorDescription": "A compact reading of the borough's most useful planning indicators.",
+        "indicatorInfo": "About {{indicator}}",
+        "closeIndicatorInfo": "Close indicator explanation",
+        "tooltipMeasures": "What it measures",
+        "tooltipInterpretation": "How to interpret",
         "interpretation": "Interpretation",
         "attentionTitle": "What deserves attention",
         "attentionDescription": "AI interpretation grounded in stored Analysis Engine results.",
@@ -145,6 +149,68 @@
         "wet": "Average surface moisture conditions",
         "landscape": "Landscape quality and ecological continuity",
         "recycling": "Share of household waste sent for recycling"
+    },
+    "indicatorTooltips": {
+        "gdhi_per_head_gbp": {
+            "title": "Gross Disposable Household Income per head",
+            "description": "Estimates the household income available per person after taxes and social transfers.",
+            "interpretation": "Higher values generally indicate greater household spending capacity."
+        },
+        "business_density_per_1000": {
+            "title": "Business density",
+            "description": "Measures the number of active businesses for every 1,000 residents.",
+            "interpretation": "Higher values generally indicate stronger business concentration and local economic activity."
+        },
+        "house_price_earnings_ratio_reverse": {
+            "title": "Housing affordability indicator",
+            "description": "Represents housing cost pressure relative to local earnings.",
+            "interpretation": "Higher values indicate greater affordability pressure."
+        },
+        "police_mean": {
+            "title": "Police provision",
+            "description": "Represents the relative availability of policing resources across the area.",
+            "interpretation": "Higher values generally indicate greater police-resource provision."
+        },
+        "bus_mean": {
+            "title": "Bus accessibility",
+            "description": "Measures access to bus stops and the surrounding bus service network.",
+            "interpretation": "Higher values generally indicate stronger bus accessibility."
+        },
+        "medical_mean": {
+            "title": "Medical resource accessibility",
+            "description": "Measures access to healthcare facilities and medical services.",
+            "interpretation": "Higher values generally indicate stronger access to medical resources."
+        },
+        "cultural_mean": {
+            "title": "Cultural amenity accessibility",
+            "description": "Measures access to cultural venues, institutions, and public amenities.",
+            "interpretation": "Higher values generally indicate broader access to cultural opportunities."
+        },
+        "convenient_service_mean": {
+            "title": "Convenient service accessibility",
+            "description": "Measures access to everyday services used by residents in their neighbourhoods.",
+            "interpretation": "Higher values generally indicate easier access to daily services."
+        },
+        "ndvi_mean": {
+            "title": "Normalized Difference Vegetation Index",
+            "description": "Measures vegetation coverage using satellite imagery.",
+            "interpretation": "Higher values generally indicate more vegetation."
+        },
+        "wet_mean": {
+            "title": "Wetness index",
+            "description": "Represents moisture-related characteristics derived from environmental data.",
+            "interpretation": "Higher values generally indicate stronger wetness-related signals."
+        },
+        "landscape_index": {
+            "title": "Landscape index",
+            "description": "Describes landscape characteristics and ecological structure.",
+            "interpretation": "It is used to understand spatial environmental patterns."
+        },
+        "household_waste_recycling_rate_pct": {
+            "title": "Household waste recycling rate",
+            "description": "Measures the percentage of household waste sent for reuse, recycling, or composting.",
+            "interpretation": "Higher values generally indicate more household waste being recycled."
+        }
     },
     "errors": {
         "boroughId": "Unable to resolve a borough ID for {{borough}}.",

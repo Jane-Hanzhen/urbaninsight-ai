@@ -12,10 +12,24 @@
   "analysis": {
     "badge": "城市潜力分析", "title": "{{borough}} 分析", "intro": "清晰了解该行政区的表现、影响因素与实际发展机会。", "generateReport": "生成报告", "generating": "正在生成……", "downloadPDF": "下载 PDF 报告", "exportMarkdown": "导出 Markdown", "generatingPDF": "正在生成 PDF……", "generatingMarkdown": "正在准备 Markdown……", "overallScore": "综合得分", "rank": "排名 #{{rank}}", "rankedAcross": "在 33 个行政区中排名", "statisticalSummary": "统计摘要", "performance": "表现",
     "dimensionsTitle": "城市潜力的三个维度", "dimensionsDescription": "基于 PCA 加权 TOPSIS 的百分制评估结果。", "economic": "经济", "social": "社会", "ecological": "生态", "economicDescription": "收入、商业密度与住房负担能力。", "socialDescription": "公共安全、服务、文化、医疗与公交可达性。", "ecologicalDescription": "植被、湿度、景观质量与回收利用。",
-    "profile": "表现概况", "profileDescription": "核心维度之间的均衡程度", "contribution": "贡献度分析", "contributionDescription": "各维度在综合评估中的占比", "indicators": "指标", "indicatorTitle": "得分背后的信号", "indicatorDescription": "简明呈现该行政区最具参考价值的规划指标。", "interpretation": "解读", "attentionTitle": "值得关注的方面", "attentionDescription": "基于分析引擎存储结果生成的 AI 深度解读。", "basicInterpretationDescription": "基于分析引擎存储结果展示预设解读，不调用外部模型。",
+    "profile": "表现概况", "profileDescription": "核心维度之间的均衡程度", "contribution": "贡献度分析", "contributionDescription": "各维度在综合评估中的占比", "indicators": "指标", "indicatorTitle": "得分背后的信号", "indicatorDescription": "简明呈现该行政区最具参考价值的规划指标。", "indicatorInfo": "了解{{indicator}}", "closeIndicatorInfo": "关闭指标说明", "tooltipMeasures": "衡量内容", "tooltipInterpretation": "如何解读", "interpretation": "解读", "attentionTitle": "值得关注的方面", "attentionDescription": "基于分析引擎存储结果生成的 AI 深度解读。", "basicInterpretationDescription": "基于分析引擎存储结果展示预设解读，不调用外部模型。",
     "drivers": "主要驱动因素与指标解读", "strengths": "优势", "weaknesses": "短板", "recommendations": "建议", "unavailable": "AI 深度解读暂不可用", "unavailableDescription": "AI 深度解读暂不可用，完整的基础分析结果仍可查看。", "basicAnalysis": "基础分析", "basicAnalysisDescription": "本次分析仅使用已存储的 PCA 加权 TOPSIS 结果，不包含 AI 深度解读。", "shareTitle": "准备分享分析结果？", "shareDescription": "下载正式 PDF 报告，或导出 Markdown 继续编辑。", "summary": "PCA 加权 TOPSIS 得分为 {{score}}，在伦敦排名第 {{rank}}。表现最强的评估维度是{{dimension}}。", "fallbackSummary": "分析引擎结果暂不可用；当前工作区显示的是预览数据。", "priority": { "high": "高", "medium": "中" }
   },
   "indicators": { "gdhi_per_head_gbp": "人均可支配收入", "business_density_per_1000": "商业密度", "house_price_earnings_ratio_reverse": "住房负担能力", "police_mean": "警务资源", "convenient_service_mean": "便民服务可达性", "cultural_mean": "文化设施可达性", "medical_mean": "医疗资源可达性", "bus_mean": "公交可达性", "ndvi_mean": "植被指数", "wet_mean": "湿度指数", "landscape_index": "景观指数", "household_waste_recycling_rate_pct": "生活垃圾回收率" },
   "indicatorContext": { "gdhi": "家庭可支配总收入", "business": "每千人企业数量", "reversed": "反映住房价格与收入之间的负担关系", "police": "区域警务资源的相对供给水平", "bus": "公交站点与公交服务的可达程度", "medical": "医疗设施与服务的可达程度", "cultural": "文化场所与公共文化设施的可达程度", "convenient": "居民日常便民服务的可达程度", "ndvi": "区域平均植被覆盖指数", "wet": "反映地表湿度状况的平均指数", "landscape": "反映景观质量与连续性的综合指标", "recycling": "生活垃圾回收利用率" },
+  "indicatorTooltips": {
+    "gdhi_per_head_gbp": { "title": "人均可支配收入", "description": "衡量扣除税费并计入社会转移后，人均可用于消费和储蓄的家庭收入。", "interpretation": "通常数值越高代表居民家庭的消费能力越强。" },
+    "business_density_per_1000": { "title": "商业密度", "description": "衡量每千名居民对应的活跃企业数量。", "interpretation": "通常数值越高代表企业集聚和区域经济活动越活跃。" },
+    "house_price_earnings_ratio_reverse": { "title": "住房负担能力指标", "description": "反映住房成本相对于当地居民收入的压力。", "interpretation": "数值越高表示住房负担压力越大。" },
+    "police_mean": { "title": "警务资源供给", "description": "反映区域内警务资源的相对可获得程度。", "interpretation": "通常数值越高代表警务资源供给越充足。" },
+    "bus_mean": { "title": "公交可达性", "description": "衡量居民到公交站点及公交服务网络的便利程度。", "interpretation": "通常数值越高代表公交可达性越强。" },
+    "medical_mean": { "title": "医疗资源可达性", "description": "衡量居民获得医疗设施和医疗服务的便利程度。", "interpretation": "通常数值越高代表医疗资源越容易获得。" },
+    "cultural_mean": { "title": "文化设施可达性", "description": "衡量居民到文化场所、文化机构和公共文化设施的便利程度。", "interpretation": "通常数值越高代表文化资源覆盖越广。" },
+    "convenient_service_mean": { "title": "便民服务可达性", "description": "衡量居民获得街区日常生活服务的便利程度。", "interpretation": "通常数值越高代表日常服务越容易获得。" },
+    "ndvi_mean": { "title": "归一化植被指数", "description": "基于卫星影像衡量区域植被覆盖程度。", "interpretation": "通常数值越高代表植被覆盖越丰富。" },
+    "wet_mean": { "title": "湿度指数", "description": "反映环境数据中的地表水分与湿度相关特征。", "interpretation": "通常数值越高代表湿度相关信号越强。" },
+    "landscape_index": { "title": "景观指数", "description": "描述区域景观特征与生态空间结构。", "interpretation": "用于理解环境要素在空间上的分布与组合模式。" },
+    "household_waste_recycling_rate_pct": { "title": "生活垃圾回收率", "description": "衡量进入再利用、回收或堆肥流程的生活垃圾比例。", "interpretation": "通常数值越高代表被回收利用的生活垃圾越多。" }
+  },
   "errors": { "boroughId": "无法获取 {{borough}} 的行政区 ID。", "ai": "AI 响应失败", "aiUnavailable": "AI 深度解读暂不可用", "providerUnavailable": "{{provider}} 深度解读暂不可用，当前展示完整基础分析结果。", "analysis": "无法加载分析数据", "comparison": "行政区比较失败", "report": "Markdown 导出失败", "pdfReport": "PDF 报告生成失败" }
 }
