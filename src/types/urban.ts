@@ -22,8 +22,11 @@ export type DimensionContribution = {
   contribution: number;
 };
 
+export type IndicatorDimension = "Economic" | "Social" | "Ecological";
+
 export type KeyIndicator = {
   id: string;
+  dimension: IndicatorDimension;
   label: string;
   value: string;
   context: string;

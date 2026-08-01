@@ -8,6 +8,7 @@ import {
   FileText,
   GraduationCap,
   HeartPulse,
+  House,
   Leaf,
   Lightbulb,
   MapPinned,
@@ -35,6 +36,7 @@ import type {
   AIAnalysisInsights,
   AnalysisInsight,
   AnalysisRecommendation,
+  IndicatorDimension,
   KeyIndicator,
   MockAnalysis
 } from "@/types/urban";
@@ -56,9 +58,12 @@ const dimensionIcons = {
   Ecological: Leaf
 };
 
+const indicatorDimensions: IndicatorDimension[] = ["Economic", "Social", "Ecological"];
+
 const indicatorIcons = {
   gdhi_per_head_gbp: Building2,
   business_density_per_1000: BriefcaseBusiness,
+  house_price_earnings_ratio_reverse: House,
   police_mean: Users,
   convenient_service_mean: MapPinned,
   cultural_mean: GraduationCap,
@@ -209,10 +214,39 @@ export function AnalysisWorkspace({
         title={t("analysis.indicatorTitle")}
         description={t("analysis.indicatorDescription")}
       />
-      <div className="grid gap-md sm:grid-cols-2 xl:grid-cols-3">
-        {analysis.indicators.map((indicator) => (
-          <IndicatorCard key={indicator.id} indicator={indicator} />
-        ))}
+      <div className="space-y-xl" data-testid="indicator-groups">
+        {indicatorDimensions.map((dimension) => {
+          const Icon = dimensionIcons[dimension];
+          const groupedIndicators = analysis.indicators.filter(
+            (indicator) => indicator.dimension === dimension
+          );
+          if (groupedIndicators.length === 0) return null;
+          return (
+            <section key={dimension} aria-labelledby={`indicator-group-${dimension.toLowerCase()}`}>
+              <div className="mb-md flex items-start gap-sm border-b border-border pb-sm">
+                <div className="mt-xs flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-primary">
+                  <Icon size={18} aria-hidden="true" />
+                </div>
+                <div className="min-w-0">
+                  <h4
+                    id={`indicator-group-${dimension.toLowerCase()}`}
+                    className="text-[18px] font-semibold text-text-primary"
+                  >
+                    {dimensionName(dimension)}
+                  </h4>
+                  <p className="mt-xs text-caption text-text-secondary">
+                    {t(`analysis.${dimension.toLowerCase()}Description`)}
+                  </p>
+                </div>
+              </div>
+              <div className="grid gap-md sm:grid-cols-2 xl:grid-cols-3">
+                {groupedIndicators.map((indicator) => (
+                  <IndicatorCard key={indicator.id} indicator={indicator} />
+                ))}
+              </div>
+            </section>
+          );
+        })}
       </div>
 
       <SectionHeading
@@ -375,8 +409,8 @@ function IndicatorCard({ indicator }: { indicator: KeyIndicator }) {
   }[indicator.status];
 
   return (
-    <Card className="flex items-start justify-between gap-md">
-      <div>
+    <Card className="flex min-w-0 items-start justify-between gap-md">
+      <div className="min-w-0">
         <p className="text-caption text-text-secondary">{indicator.label}</p>
         <p className="mt-xs text-heading">{indicator.value}</p>
         <p className="mt-sm text-caption text-text-secondary">{indicator.context}</p>

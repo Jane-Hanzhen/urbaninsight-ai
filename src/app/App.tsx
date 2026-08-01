@@ -493,6 +493,7 @@ function toIndicatorCards(t: TFunction, indicators: ApiIndicators) {
   return [
     {
       id: "gdhi_per_head_gbp",
+      dimension: "Economic" as const,
       label: t("indicators.gdhi_per_head_gbp", { defaultValue: "GDHI per head" }),
       value: formatCurrency(indicators.gdhi_per_head_gbp),
       context: t("indicatorContext.gdhi"),
@@ -500,6 +501,7 @@ function toIndicatorCards(t: TFunction, indicators: ApiIndicators) {
     },
     {
       id: "business_density_per_1000",
+      dimension: "Economic" as const,
       label: t("indicators.business_density_per_1000", { defaultValue: "Business density" }),
       value: `${formatNumber(indicators.business_density_per_1000, 1)} / 1,000`,
       context: t("indicatorContext.business"),
@@ -507,79 +509,96 @@ function toIndicatorCards(t: TFunction, indicators: ApiIndicators) {
     },
     {
       id: "house_price_earnings_ratio_reverse",
-      label: t("indicators.house_price_earnings_ratio_reverse", { defaultValue: "House price / earnings" }),
-      value: formatNumber(indicators.house_price_earnings_ratio_reverse, 2),
+      dimension: "Economic" as const,
+      label: t("indicators.house_price_earnings_ratio_reverse", { defaultValue: "Housing affordability" }),
+      value: formatNumber(indicators.house_price_earnings_ratio_reverse, 2, 2),
       context: t("indicatorContext.reversed"),
       status: "neutral" as const
     },
     {
       id: "police_mean",
+      dimension: "Social" as const,
       label: t("indicators.police_mean", { defaultValue: "Police provision" }),
-      value: formatNumber(indicators.police_mean, 1),
-      context: t("indicatorContext.source"),
-      status: "neutral" as const
-    },
-    {
-      id: "convenient_service_mean",
-      label: t("indicators.convenient_service_mean", { defaultValue: "Convenient services" }),
-      value: formatNumber(indicators.convenient_service_mean, 1),
-      context: t("indicatorContext.source"),
-      status: "neutral" as const
-    },
-    {
-      id: "cultural_mean",
-      label: t("indicators.cultural_mean", { defaultValue: "Cultural amenities" }),
-      value: formatNumber(indicators.cultural_mean, 1),
-      context: t("indicatorContext.source"),
-      status: "neutral" as const
-    },
-    {
-      id: "medical_mean",
-      label: t("indicators.medical_mean", { defaultValue: "Medical resources" }),
-      value: formatNumber(indicators.medical_mean, 1),
-      context: t("indicatorContext.source"),
+      value: formatNumber(indicators.police_mean, 1, 1),
+      context: t("indicatorContext.police"),
       status: "neutral" as const
     },
     {
       id: "bus_mean",
+      dimension: "Social" as const,
       label: t("indicators.bus_mean", { defaultValue: "Bus accessibility" }),
-      value: formatNumber(indicators.bus_mean, 1),
-      context: t("indicatorContext.source"),
+      value: formatNumber(indicators.bus_mean, 1, 1),
+      context: t("indicatorContext.bus"),
+      status: "neutral" as const
+    },
+    {
+      id: "medical_mean",
+      dimension: "Social" as const,
+      label: t("indicators.medical_mean", { defaultValue: "Medical resources" }),
+      value: formatNumber(indicators.medical_mean, 1, 1),
+      context: t("indicatorContext.medical"),
+      status: "neutral" as const
+    },
+    {
+      id: "cultural_mean",
+      dimension: "Social" as const,
+      label: t("indicators.cultural_mean", { defaultValue: "Cultural amenities" }),
+      value: formatNumber(indicators.cultural_mean, 1, 1),
+      context: t("indicatorContext.cultural"),
+      status: "neutral" as const
+    },
+    {
+      id: "convenient_service_mean",
+      dimension: "Social" as const,
+      label: t("indicators.convenient_service_mean", { defaultValue: "Convenient services" }),
+      value: formatNumber(indicators.convenient_service_mean, 1, 1),
+      context: t("indicatorContext.convenient"),
       status: "neutral" as const
     },
     {
       id: "ndvi_mean",
+      dimension: "Ecological" as const,
       label: t("indicators.ndvi_mean", { defaultValue: "NDVI" }),
-      value: formatNumber(indicators.ndvi_mean, 3),
+      value: formatNumber(indicators.ndvi_mean, 3, 3),
       context: t("indicatorContext.ndvi"),
       status: "neutral" as const
     },
     {
       id: "wet_mean",
+      dimension: "Ecological" as const,
       label: t("indicators.wet_mean", { defaultValue: "Wetness index" }),
-      value: formatNumber(indicators.wet_mean, 3),
+      value: formatNumber(indicators.wet_mean, 3, 3),
       context: t("indicatorContext.wet"),
       status: "neutral" as const
     },
     {
       id: "landscape_index",
+      dimension: "Ecological" as const,
       label: t("indicators.landscape_index", { defaultValue: "Landscape index" }),
-      value: formatNumber(indicators.landscape_index, 3),
+      value: formatNumber(indicators.landscape_index, 3, 3),
       context: t("indicatorContext.landscape"),
       status: "neutral" as const
     },
     {
       id: "household_waste_recycling_rate_pct",
+      dimension: "Ecological" as const,
       label: t("indicators.household_waste_recycling_rate_pct", { defaultValue: "Waste recycling" }),
-      value: `${formatNumber(indicators.household_waste_recycling_rate_pct, 0)}%`,
+      value: `${formatNumber(indicators.household_waste_recycling_rate_pct, 1, 1)}%`,
       context: t("indicatorContext.recycling"),
       status: "neutral" as const
     }
   ];
 }
 
-function formatNumber(value: number, maximumFractionDigits: number) {
-  return new Intl.NumberFormat("en-GB", { maximumFractionDigits }).format(value);
+function formatNumber(
+  value: number,
+  maximumFractionDigits: number,
+  minimumFractionDigits = 0
+) {
+  return new Intl.NumberFormat("en-GB", {
+    maximumFractionDigits,
+    minimumFractionDigits
+  }).format(value);
 }
 
 function formatCurrency(value: number) {

@@ -121,7 +121,7 @@
     "indicators": {
         "gdhi_per_head_gbp": "GDHI per head",
         "business_density_per_1000": "Business density",
-        "house_price_earnings_ratio_reverse": "House price / earnings",
+        "house_price_earnings_ratio_reverse": "Housing affordability",
         "police_mean": "Police provision",
         "convenient_service_mean": "Convenient services",
         "cultural_mean": "Cultural amenities",
@@ -130,17 +130,21 @@
         "ndvi_mean": "NDVI",
         "wet_mean": "Wetness index",
         "landscape_index": "Landscape index",
-        "household_waste_recycling_rate_pct": "Waste recycling"
+        "household_waste_recycling_rate_pct": "Household waste recycling rate"
     },
     "indicatorContext": {
-        "gdhi": "Gross disposable household income",
+        "gdhi": "Household income available after taxes and transfers",
         "business": "Firms per 1,000 population",
-        "reversed": "Reversed ratio supplied by source",
-        "source": "Source mean indicator",
-        "ndvi": "Mean vegetation index",
-        "wet": "Mean source index",
-        "landscape": "Source landscape metric",
-        "recycling": "Household waste recycling rate"
+        "reversed": "Relationship between local house prices and earnings",
+        "police": "Relative provision of local policing resources",
+        "bus": "Access to bus stops and services",
+        "medical": "Access to healthcare facilities and services",
+        "cultural": "Access to cultural venues and amenities",
+        "convenient": "Access to everyday neighbourhood services",
+        "ndvi": "Average vegetation coverage and greenness",
+        "wet": "Average surface moisture conditions",
+        "landscape": "Landscape quality and ecological continuity",
+        "recycling": "Share of household waste sent for recycling"
     },
     "errors": {
         "boroughId": "Unable to resolve a borough ID for {{borough}}.",
