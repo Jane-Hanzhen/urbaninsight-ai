@@ -273,6 +273,8 @@ class ProviderConfigurationTests(unittest.TestCase):
         with patch.dict(os.environ, environment, clear=True):
             response = TestClient(app).get("/ai/status")
         self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["enabled"])
+        self.assertEqual(response.json()["mode"], "live")
         self.assertEqual(response.json()["provider"], "deepseek")
         self.assertEqual(response.json()["model"], "deepseek-test")
         self.assertEqual(response.json()["default_provider"], "deepseek")
@@ -366,6 +368,8 @@ class ProviderGenerationTests(unittest.TestCase):
                 )
 
         self.assertEqual(status.json()["provider"], "mock")
+        self.assertTrue(status.json()["enabled"])
+        self.assertEqual(status.json()["mode"], "mock")
         self.assertEqual(status.json()["model"], "urbaninsight-mock")
         self.assertEqual(status.json()["available_providers"], ["deepseek", "qwen"])
         self.assertEqual(analyze.status_code, 200)

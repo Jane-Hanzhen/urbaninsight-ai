@@ -142,8 +142,12 @@ def borough_analysis(borough_id: str) -> dict[str, Any]:
 @app.get("/ai/status")
 def ai_status() -> dict[str, Any]:
     try:
+        mode = configured_mode()
+        configured = is_configured()
         return {
-            "configured": is_configured(),
+            "configured": configured,
+            "enabled": configured,
+            "mode": mode,
             "provider": configured_provider(),
             "model": configured_model(),
             "default_provider": configured_live_provider(),

@@ -59,6 +59,8 @@ export type ApiAnalysisResponse = {
 
 export type AIStatusResponse = {
   configured: boolean;
+  enabled: boolean;
+  mode: "mock" | "live";
   provider: string;
   model: string;
   default_provider: string;

@@ -18,7 +18,8 @@ import {
   generatePDFReport,
   type ApiAnalysisResult,
   type ApiBorough,
-  type ApiIndicators
+  type ApiIndicators,
+  type AIStatusResponse
 } from "@/lib/api";
 import type {
   AIAnalysisInsights,
@@ -49,6 +50,7 @@ export function App() {
   const [aiInsightsEnabled, setAIInsightsEnabled] = useState(
     () => window.localStorage.getItem(AI_INSIGHTS_STORAGE_KEY) === "true"
   );
+  const [aiRuntimeStatus, setAIRuntimeStatus] = useState<AIStatusResponse | null>(null);
   const [analysisUsedAI, setAnalysisUsedAI] = useState(false);
   const [analysisRequestedAI, setAnalysisRequestedAI] = useState(false);
   const [aiProvider, setAIProvider] = useState<AIProvider>(() => {
@@ -82,15 +84,18 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (window.localStorage.getItem(AI_PROVIDER_STORAGE_KEY)) return;
     const controller = new AbortController();
     fetchAIStatus(controller.signal)
       .then((status) => {
-        if (status.default_provider === "qwen" || status.default_provider === "deepseek") {
+        setAIRuntimeStatus(status);
+        if (
+          !window.localStorage.getItem(AI_PROVIDER_STORAGE_KEY) &&
+          (status.default_provider === "qwen" || status.default_provider === "deepseek")
+        ) {
           setAIProvider(status.default_provider);
         }
       })
-      .catch(() => undefined);
+      .catch(() => setAIRuntimeStatus(null));
     return () => controller.abort();
   }, []);
 
@@ -477,6 +482,8 @@ export function App() {
               aiInsights={aiInsights}
               analysisRequestedAI={analysisRequestedAI}
               analysisUsedAI={analysisUsedAI}
+              aiRuntimeStatus={aiRuntimeStatus}
+              activeAIProvider={completedMetadata?.ai_provider ?? null}
               reportFormat={reportFormat}
               reportError={reportError}
               onGeneratePDF={handleGeneratePDF}

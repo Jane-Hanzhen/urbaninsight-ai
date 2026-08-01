@@ -15,6 +15,7 @@ import {
   MapPinned,
   Sparkles,
   Users,
+  Zap,
   X
 } from "lucide-react";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
@@ -36,6 +37,7 @@ import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { AIStatusResponse } from "@/lib/api";
 import type {
   AIAnalysisInsights,
   AnalysisInsight,
@@ -50,6 +52,8 @@ type AnalysisWorkspaceProps = {
   aiInsights: AIAnalysisInsights | null;
   analysisRequestedAI: boolean;
   analysisUsedAI: boolean;
+  aiRuntimeStatus: AIStatusResponse | null;
+  activeAIProvider: string | null;
   reportFormat: "pdf" | "markdown" | null;
   reportError: string | null;
   onGeneratePDF: () => Promise<void>;
@@ -84,6 +88,8 @@ export function AnalysisWorkspace({
   aiInsights,
   analysisRequestedAI,
   analysisUsedAI,
+  aiRuntimeStatus,
+  activeAIProvider,
   reportFormat,
   reportError,
   onGeneratePDF,
@@ -107,6 +113,12 @@ export function AnalysisWorkspace({
           onGenerateMarkdown={onGenerateMarkdown}
         />
       </div>
+
+      <AIRuntimeStatusBanner
+        status={aiRuntimeStatus}
+        analysisUsedAI={analysisUsedAI}
+        activeAIProvider={activeAIProvider}
+      />
 
       <Card className="mt-xl overflow-hidden hover:translate-y-0">
         <div className="grid gap-xl lg:grid-cols-[220px_1fr] lg:items-center">
@@ -325,6 +337,65 @@ export function AnalysisWorkspace({
         />
       </div>
     </section>
+  );
+}
+
+function AIRuntimeStatusBanner({
+  status,
+  analysisUsedAI,
+  activeAIProvider
+}: {
+  status: AIStatusResponse | null;
+  analysisUsedAI: boolean;
+  activeAIProvider: string | null;
+}) {
+  const { t } = useTranslation();
+  if (!status) return null;
+
+  if (status.mode === "mock") {
+    return (
+      <div
+        role="status"
+        data-testid="ai-runtime-status"
+        className="mt-lg flex items-start gap-sm rounded-md border border-amber-100 bg-amber-50/70 px-md py-sm"
+      >
+        <Zap className="mt-[2px] shrink-0 text-amber-600" size={16} aria-hidden="true" />
+        <div>
+          <p className="text-caption font-semibold text-amber-900">
+            {t("analysis.runtime.mockTitle")}
+          </p>
+          <p className="mt-xs text-caption text-amber-900/75">
+            {t("analysis.runtime.mockDescription")}
+          </p>
+          <p className="text-caption text-amber-900/75">
+            {t("analysis.runtime.mockSecondary")}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!analysisUsedAI) return null;
+  const providerKey = activeAIProvider ?? status.provider;
+  const provider = t(`ai.providers.${providerKey}`, {
+    defaultValue: providerKey
+  });
+  return (
+    <div
+      role="status"
+      data-testid="ai-runtime-status"
+      className="mt-lg flex items-start gap-sm rounded-md border border-blue-100 bg-blue-50/70 px-md py-sm"
+    >
+      <Sparkles className="mt-[2px] shrink-0 text-primary" size={16} aria-hidden="true" />
+      <div>
+        <p className="text-caption font-semibold text-blue-950">
+          {t("analysis.runtime.liveTitle")}
+        </p>
+        <p className="mt-xs text-caption text-blue-900/75">
+          {t("analysis.runtime.liveProvider", { provider })}
+        </p>
+      </div>
+    </div>
   );
 }
 

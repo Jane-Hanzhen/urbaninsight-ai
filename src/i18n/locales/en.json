@@ -50,7 +50,8 @@
         "providerLabel": "AI model",
         "providers": {
             "deepseek": "DeepSeek",
-            "qwen": "Qwen"
+            "qwen": "Qwen",
+            "openai": "OpenAI"
         },
         "settingNextAnalysis": "This setting will apply to the next analysis",
         "basicCompleteHint": "Basic analysis complete. Generate a report or select another borough.",
@@ -104,6 +105,13 @@
         "closeIndicatorInfo": "Close indicator explanation",
         "tooltipMeasures": "What it measures",
         "tooltipInterpretation": "How to interpret",
+        "runtime": {
+            "mockTitle": "Demo Mode",
+            "mockDescription": "Showing base urban analysis results.",
+            "mockSecondary": "LLM-generated insights are disabled.",
+            "liveTitle": "AI Deep Analysis Enabled",
+            "liveProvider": "Powered by {{provider}}"
+        },
         "interpretation": "Interpretation",
         "attentionTitle": "What deserves attention",
         "attentionDescription": "AI interpretation grounded in stored Analysis Engine results.",
