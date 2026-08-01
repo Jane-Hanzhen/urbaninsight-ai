@@ -46,6 +46,7 @@ build/
 data/*.csv
 data/*.geojson
 public/data/*.geojson
+!public/data/london_boroughs.geojson
 private_data/
 **/private_data/
 
