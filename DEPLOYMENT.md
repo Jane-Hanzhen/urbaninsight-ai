@@ -1,8 +1,20 @@
 # UrbanInsight AI Deployment Guide
 
-This guide documents the current Vercel + Railway release architecture without embedding credentials or publishing the private indicator dataset. It does not claim a verified public URL.
+This guide documents the two deployment approaches implemented for UrbanInsight AI without embedding credentials or publishing the private indicator dataset:
 
-## Deployment Architecture
+- **Current public demo — ModelScope Studio:** a single-container deployment serving the React frontend and FastAPI backend from the same origin.
+- **Decoupled full-stack deployment — Vercel + Railway:** the React frontend is deployed on Vercel, while the FastAPI backend runs on Railway.
+
+Both approaches deploy the same product and core functionality. ModelScope is used as the current public-facing demo, while the Vercel + Railway setup is retained as an implemented reference architecture.
+
+## Deployment Overview
+
+| Deployment        | Architecture                            | Role                             |
+| ----------------- | --------------------------------------- | -------------------------------- |
+| ModelScope Studio | React + FastAPI in one Docker container | Current public demo              |
+| Vercel + Railway  | Vercel frontend + Railway backend       | Implemented decoupled deployment |
+
+## Vercel + Railway Architecture
 
 ```text
 Vercel
@@ -16,17 +28,19 @@ Railway
 Mock, DeepSeek, or Qwen provider
 ```
 
-Recommended first public-demo configuration:
+The current public demo uses the ModelScope single-container deployment documented below.
+
+The Vercel + Railway configuration remains available as the decoupled deployment option:
 
 - Frontend: Vercel
 - Backend: Railway
-- Database: precomputed, read-mostly SQLite
-- AI: `AI_MODE=mock`
+- Database: generated, read-mostly SQLite
+- AI: `AI_MODE=mock` by default
 
 ## Prerequisites
 
-- Node.js 20 or later
-- pnpm
+- Node.js 22.13 or later
+- pnpm 11.18.0
 - Python 3.11 or later
 - Private indicator CSV matching the documented schema
 - London borough GeoJSON from the attributed public source
@@ -39,13 +53,13 @@ Do not commit the private indicator CSV. The browser-served borough boundary mus
 
 ### Framework and build
 
-| Setting | Value |
-| --- | --- |
-| Framework | React + Vite |
-| Install command | `pnpm install` |
-| Build command | `pnpm run build` |
-| Output directory | `dist` |
-| Recommended runtime | Node.js 20+ |
+| Setting             | Value            |
+| ------------------- | ---------------- |
+| Framework           | React + Vite     |
+| Install command     | `pnpm install`   |
+| Build command       | `pnpm run build` |
+| Output directory    | `dist`           |
+| Recommended runtime | Node.js 22.13+   |
 
 The production build reads the backend base URL from:
 
@@ -74,23 +88,23 @@ The map fetches `/data/london_boroughs.geojson` from the frontend origin. The ba
 
 ### Railway service settings
 
-| Setting | Value |
-| --- | --- |
-| Root Directory | `backend` |
-| Build Command | `pip install -r requirements.txt` |
-| Start Command | `bash start.sh` |
-| Health Check Path | `/health` |
+| Setting           | Value                             |
+| ----------------- | --------------------------------- |
+| Root Directory    | `backend`                         |
+| Build Command     | `pip install -r requirements.txt` |
+| Start Command     | `bash start.sh`                   |
+| Health Check Path | `/health`                         |
 
 Railway supplies `PORT` at runtime. The startup script requires it and binds Uvicorn to `0.0.0.0:$PORT`.
 
 ### Runtime and commands
 
-| Setting | Value |
-| --- | --- |
-| Runtime | Python 3.11+ |
+| Setting      | Value                      |
+| ------------ | -------------------------- |
+| Runtime      | Python 3.11+               |
 | Requirements | `backend/requirements.txt` |
-| Health check | `GET /health` |
-| Application | `app.main:app` |
+| Health check | `GET /health`              |
+| Application  | `app.main:app`             |
 
 From the repository root, install dependencies with:
 
@@ -174,7 +188,7 @@ Configure the platform health-check path as:
 Expected response:
 
 ```json
-{"status":"ok"}
+{ "status": "ok" }
 ```
 
 ### Backend environment variables
@@ -301,12 +315,12 @@ If the public UI should demonstrate switching between Qwen and DeepSeek in Live 
 
 ## Data deployment checklist
 
-| File | Purpose | Must be public? | Git status | Deployment and licensing notes |
-| --- | --- | --- | --- | --- |
-| `data/london_indicators.csv` | Backend import source for borough indicators | Not as a direct download, but its values are exposed through the API | Ignored | Redistribution and derived-data exposure require a provenance and rights review before a public demo. |
-| `data/london_boroughs.geojson` | Canonical local borough-boundary working copy | No | Ignored | Local duplicate of the attributed browser boundary. |
-| `public/data/london_boroughs.geojson` | Browser-served map geometry | Yes, because Vercel serves it to every visitor | Tracked | Source: `radoi90/housequest-data`; the adjacent upstream MIT notice is retained. |
-| `backend/urban_insight.db` | Generated borough, indicator, and analysis-result database | Not as a downloadable file | Ignored | May be generated during deployment or stored on a volume; public API responses still require source-data rights review. |
+| File                                  | Purpose                                                    | Must be public?                                                      | Git status | Deployment and licensing notes                                                                                          |
+| ------------------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `data/london_indicators.csv`          | Backend import source for borough indicators               | Not as a direct download, but its values are exposed through the API | Ignored    | Redistribution and derived-data exposure require a provenance and rights review before a public demo.                   |
+| `data/london_boroughs.geojson`        | Canonical local borough-boundary working copy              | No                                                                   | Ignored    | Local duplicate of the attributed browser boundary.                                                                     |
+| `public/data/london_boroughs.geojson` | Browser-served map geometry                                | Yes, because Vercel serves it to every visitor                       | Tracked    | Source: `radoi90/housequest-data`; the adjacent upstream MIT notice is retained.                                        |
+| `backend/urban_insight.db`            | Generated borough, indicator, and analysis-result database | Not as a downloadable file                                           | Ignored    | May be generated during deployment or stored on a volume; public API responses still require source-data rights review. |
 
 Current conclusions:
 
@@ -351,4 +365,92 @@ Automated tests use Mock Provider calls and must not contact paid LLM APIs.
 - [ ] Deploy the frontend and verify API requests in a browser.
 - [ ] Keep the public demo on `AI_MODE=mock` with no real keys.
 - [ ] Verify analysis, structured chat, structured comparison, retry, analysis PDF, conversation PDF, and Markdown flows.
-- [ ] Add the verified demo URL to both portfolio READMEs.
+- [ ] Keep the public demo link and deployment status consistent across the project README and Portfolio website.
+
+## ModelScope Docker Deployment — Current Public Demo
+
+The current public-facing UrbanInsight AI demo uses this single-container ModelScope deployment.
+
+The multi-stage `Dockerfile` builds the Vite frontend with Node, installs the FastAPI runtime with Python, and copies only the compiled frontend into the final image. Uvicorn listens on `0.0.0.0:7860`; FastAPI serves both the API and the React SPA, so the production frontend uses same-origin API requests.
+
+### Required ModelScope variable
+
+Configure the compressed value as four separate secrets in the ModelScope Space
+settings. All four variables are required for chunked mode:
+
+```env
+URBANINSIGHT_DATA_GZIP_BASE64_PART_1=<characters 1-1000>
+URBANINSIGHT_DATA_GZIP_BASE64_PART_2=<characters 1001-2000>
+URBANINSIGHT_DATA_GZIP_BASE64_PART_3=<characters 2001-3000>
+URBANINSIGHT_DATA_GZIP_BASE64_PART_4=<characters 3001-4000>
+```
+
+If any PART variable is configured, all four must be present; incomplete PART
+configuration fails safely instead of falling back. When all four are present,
+they are joined strictly in PART_1 through PART_4 order.
+
+`URBANINSIGHT_DATA_GZIP_BASE64` remains supported as the second-priority
+single-secret compressed format. `URBANINSIGHT_DATA_BASE64` remains supported
+only as the final backward-compatible uncompressed fallback.
+
+On macOS, run this command from the repository root to compress the ignored
+private CSV and copy each segment directly to the clipboard without printing
+secret content in Terminal. Run one command, paste the clipboard into its
+matching ModelScope variable, then continue with the next command:
+
+```bash
+gzip -c data/london_indicators.csv | base64 | tr -d '\n' | cut -c 1-1000 | pbcopy
+gzip -c data/london_indicators.csv | base64 | tr -d '\n' | cut -c 1001-2000 | pbcopy
+gzip -c data/london_indicators.csv | base64 | tr -d '\n' | cut -c 2001-3000 | pbcopy
+gzip -c data/london_indicators.csv | base64 | tr -d '\n' | cut -c 3001-4000 | pbcopy
+```
+
+Each segment is at most 1000 characters. Concatenating the four clipboard values
+in order reproduces the complete gzip Base64 value exactly. Do not paste any
+segment into source files, shell scripts, documentation, build arguments, or
+logs.
+
+Do not add the CSV, compressed data, either Base64 value, a `.env` file, SQLite
+database, or any AI credential to the repository. The startup script decodes
+and decompresses the CSV to
+`/tmp/urbaninsight/london_indicators.csv`, recreates
+`/tmp/urbaninsight/urban_insight.db`, runs PCA-TOPSIS, and then starts the app.
+Neither secret value nor CSV contents are written to logs. Invalid compressed
+data fails before the destination CSV is replaced.
+
+The image defaults to:
+
+```env
+AI_MODE=mock
+URBANINSIGHT_DATA_PATH=/tmp/urbaninsight/london_indicators.csv
+URBANINSIGHT_DB_PATH=/tmp/urbaninsight/urban_insight.db
+URBANINSIGHT_FRONTEND_DIST=/app/frontend_dist
+```
+
+No `VITE_API_URL`, CORS origin, real AI key, or `PORT` variable is required for
+ModelScope. Keep `AI_MODE=mock`; the container always listens on port 7860.
+For local Vite development, an unset `VITE_API_URL` still targets
+`http://127.0.0.1:8000`; it may be overridden locally when needed.
+
+### Local Docker verification
+
+Build and run with the private dataset supplied only through the environment:
+
+```bash
+docker build -t urbaninsight-modelscope:local .
+docker run --rm -p 7860:7860 \
+  -e URBANINSIGHT_DATA_GZIP_BASE64='<compressed Base64 value>' \
+  urbaninsight-modelscope:local
+```
+
+Verify `/health`, `/`, an API route such as `/boroughs`, and a client-side route
+such as `/workspace`. Stop the test container when verification is complete.
+
+### ModelScope upload
+
+Create a Docker-based Space, then upload the project files while preserving
+`.dockerignore` and `.gitignore`. Do not upload ignored private or generated
+files. Add all four `URBANINSIGHT_DATA_GZIP_BASE64_PART_1` through
+`URBANINSIGHT_DATA_GZIP_BASE64_PART_4` variables in the Space secret settings
+and trigger the Docker build. The platform should route traffic to container
+port 7860.
